@@ -4,17 +4,19 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RouteController;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     return view('landingPage');
 });
 
 Route::get('/dashboard', function () {
-    // If user is Admin, send them to Admin Dashboard
-    if (auth()->user()->role === 'admin') {
+    $user = Auth::user();
+
+    if ($user instanceof \App\Models\User && $user->role === 'admin') {
         return redirect()->route('admin.dashboard');
     }
-    // Otherwise, show standard user dashboard
+
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
