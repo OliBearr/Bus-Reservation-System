@@ -35,7 +35,7 @@
         </div>
 
         <div class="flex items-center justify-end mt-6">
-            <button type="submit" class="w-full justify-center bg-black-600 hover:bg-black-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
+            <button type="submit" class="w-full justify-center bg-blue-600 hover:bg-black-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
                 {{ __('Log in') }}
             </button>
         </div>

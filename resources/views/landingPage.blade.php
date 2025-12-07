@@ -15,7 +15,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
                 <div class="flex-shrink-0 flex items-center">
-                    <span class="text-2xl font-bold text-indigo-600">🚌 BusBooker</span>
+                    <span class="text-2xl font-bold text-indigo-600">🚌 BusPH</span>
                 </div>
 
                 <div class="hidden sm:flex sm:items-center sm:ml-6">

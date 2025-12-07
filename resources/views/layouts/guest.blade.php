@@ -23,7 +23,7 @@
                 
                 <div style="text-align: center; margin-bottom: 20px; color: white;">
                     <a href="/" style="font-size: 2.5rem; font-weight: bold; text-decoration: none; color: white;">
-                        <span>🚌</span> BusBooker
+                        <span>🚌</span> BusPH
                     </a>
                 </div>
 
