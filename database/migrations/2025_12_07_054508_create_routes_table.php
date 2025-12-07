@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('routes', function (Blueprint $table) {
             $table->id();
+            $table->string('origin');
+            $table->string('destination');
+            $table->decimal('price', 8, 2);
             $table->timestamps();
         });
     }

@@ -4,26 +4,33 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-
         <title>{{ config('app.name', 'Laravel') }}</title>
-
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-
-        <!-- Scripts -->
+        
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
-            <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
-                </a>
+    <body style="margin: 0; padding: 0; font-family: sans-serif;">
+        
+        <div style="position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #333;">
+            
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden;">
+                <img src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2071&auto=format&fit=crop" 
+                     alt="Background" 
+                     style="width: 100%; height: 100%; object-fit: cover; opacity: 0.6;">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(30, 27, 75, 0.6);"></div>
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
+            <div style="position: relative; z-index: 10; width: 100%; max-width: 400px; padding: 20px;">
+                
+                <div style="text-align: center; margin-bottom: 20px; color: white;">
+                    <a href="/" style="font-size: 2.5rem; font-weight: bold; text-decoration: none; color: white;">
+                        <span>🚌</span> BusBooker
+                    </a>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                    {{ $slot }}
+                </div>
+                
             </div>
         </div>
     </body>
