@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RouteController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ScheduleController;
 
 Route::get('/', function () {
     return view('landingPage');
@@ -39,6 +40,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/routes/create', [RouteController::class, 'create'])->name('admin.routes.create');
     Route::post('/admin/routes', [RouteController::class, 'store'])->name('admin.routes.store');
     Route::delete('/admin/routes/{id}', [RouteController::class, 'destroy'])->name('admin.routes.destroy');
+
+    // Schedule Management
+    Route::get('/admin/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
+    Route::get('/admin/schedules/create', [ScheduleController::class, 'create'])->name('admin.schedules.create');
+    Route::post('/admin/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
+    Route::delete('/admin/schedules/{id}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
 });
 
 require __DIR__.'/auth.php';
