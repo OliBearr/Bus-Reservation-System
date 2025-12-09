@@ -10,13 +10,57 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <style>
+            /* 1. Entry Animation (Already there) */
+            @keyframes driveIn {
+                0% { opacity: 0; transform: translateX(-200px); }
+                70% { transform: translateX(10px); }
+                100% { opacity: 1; transform: translateX(0); }
+            }
+
+            /* 2. Loop Animation (Already there) */
+            @keyframes busBounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-6px); }
+            }
+
+            /* 3. NEW: Exit Animation (Drive Away) */
+            @keyframes driveOut {
+                0% { transform: translateX(0) scale(1); opacity: 1; }
+                20% { transform: translateX(-20px) scale(0.95); } /* Wind up / pullback effect */
+                100% { transform: translateX(100vw) scale(1); opacity: 0; } /* Zoom off to right */
+            }
+
+            /* Classes */
+            .bus-wrapper-entry {
+                animation: driveIn 1.2s ease-out forwards;
+            }
+
+            .bus-image-running {
+                animation: busBounce 0.6s ease-in-out infinite;
+                filter: drop-shadow(0 10px 5px rgba(0,0,0,0.3));
+            }
+
+            /* NEW CLASS to trigger via JS */
+            .bus-drive-away {
+                animation: driveOut 1s ease-in forwards !important;
+            }
+        </style>
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex">
             
             <div class="hidden lg:flex lg:w-1/2 bg-[#001233] items-center justify-center">
                 <div class="text-center p-10">
-                    <img src="{{ asset('images/logo.png') }}" alt="BusPH Logo" class="w-64 h-auto mx-auto">
+                    
+                    <div id="bus-wrapper" class="bus-wrapper-entry inline-block">
+                        <img src="{{ asset('images/logo.png') }}" 
+                            alt="BusPH Logo" 
+                            class="w-64 h-auto mx-auto bus-image-running">
+                    </div>
+
+                    <h1 class="text-white text-6xl font-bold mt-6">Welcome to BusPH</h1>
+                    <p class="text-white mt-3 text-3xl">Ticket To Go</p>
                 </div>
             </div>
 

@@ -1,4 +1,8 @@
 <x-guest-layout>
+    <a href="{{ url('/') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#001233] mb-6 transition">
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+    Back to Trip Search
+    </a>
     <div class="mb-10">
         <h2 class="text-3xl font-normal text-[#001233] mb-2">Login to your User Account</h2>
         <div class="h-0.5 w-full bg-[#001233]"></div>

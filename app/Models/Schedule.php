@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -27,5 +28,10 @@ class Schedule extends Model
     public function route()
     {
         return $this->belongsTo(Route::class);
+    }
+    public function reservations()
+    {
+        // A Schedule has many Reservations
+        return $this->hasMany(Reservation::class);
     }
 }

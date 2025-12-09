@@ -13,7 +13,6 @@ return new class extends Migration
             $table->foreignId('bus_id')->constrained('buses')->onDelete('cascade'); // Link to Bus
             $table->foreignId('route_id')->constrained('routes')->onDelete('cascade'); // Link to Route
             $table->dateTime('departure_time');
-            $table->dateTime('arrival_time');
             $table->boolean('available')->default(true);
             $table->timestamps();
         });

@@ -33,12 +33,22 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'valid_id' => ['required', 'file', 'mimes:jpg,png,pdf', 'max:2048'], // Max 2MB
         ]);
+
+        // Handle File Upload
+        $validIdPath = null;
+        if ($request->hasFile('valid_id')) {
+            // Stores in storage/app/public/valid_ids
+            $validIdPath = $request->file('valid_id')->store('valid_ids', 'public');
+        }
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'user', // Default role
+            'valid_id' => $validIdPath, // Save the path
         ]);
 
         event(new Registered($user));

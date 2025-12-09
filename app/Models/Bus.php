@@ -12,8 +12,10 @@ class Bus extends Model
     // This property tells Laravel which columns are safe to save
     protected $fillable = [
         'bus_number',
+        'plate_number',
         'type',
         'capacity',
         'operator',
+        'status',
     ];
 }

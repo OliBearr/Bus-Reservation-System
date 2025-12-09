@@ -23,18 +23,36 @@ class BusController extends Controller
     // 3. Store the new bus in the database
     public function store(Request $request)
     {
-        // Validation (Security)
         $request->validate([
             'bus_number' => 'required|unique:buses',
+            'plate_number' => 'required|unique:buses', // <--- New Rule
             'type' => 'required',
             'capacity' => 'required|integer',
-            'operator' => 'nullable|string',
+            'status' => 'required', // <--- New Rule
         ]);
 
-        // Save to Database
         Bus::create($request->all());
 
-        // Redirect back with success message
         return redirect()->route('admin.buses.index')->with('success', 'Bus added successfully!');
+    }
+
+    public function edit(Bus $bus)
+    {
+        return view('admin.buses.edit', compact('bus'));
+    }
+
+    public function update(Request $request, Bus $bus)
+    {
+        $request->validate([
+            'bus_number' => 'required|unique:buses,bus_number,' . $bus->id,
+            'plate_number' => 'required|unique:buses,plate_number,' . $bus->id, // <--- New Rule
+            'type' => 'required',
+            'capacity' => 'required|integer',
+            'status' => 'required',
+        ]);
+
+        $bus->update($request->all());
+
+        return redirect()->route('admin.buses.index')->with('success', 'Bus updated successfully!');
     }
 }
