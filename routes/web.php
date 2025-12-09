@@ -6,10 +6,14 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RouteController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\LandingController;
 
 Route::get('/', function () {
     return view('landingPage');
 });
+
+// Use the controller for the homepage
+Route::get('/', [LandingController::class, 'index'])->name('home');
 
 Route::get('/dashboard', function () {
     $user = Auth::user();
