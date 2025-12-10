@@ -146,39 +146,33 @@ class BookingController extends Controller
         return view('booking.receipt', compact('reservation')); 
     }
 
-    // Cancel Booking
-    public function cancelBooking(Request $request, $reservationId)
+    public function cancelBooking(Request $request, $id)
     {
-        // 1. Validation (Must pass to proceed)
+        // 1. Get the Reservation ID safely
+        $reservationId = ($id instanceof \App\Models\Reservation) ? $id->id : $id;
+
+        // 2. Validate the Reason
         $request->validate([
-            'cancellation_reason' => ['required', 'string', 'min:10'],
+            'cancellation_reason' => ['required', 'string', 'min:5'],
         ]);
-        
-        // 2. Find the reservation and relationships
-        $reservation = Reservation::with('schedule')->findOrFail($reservationId);
-        
-        // 3. Security and Policy Checks
+
+        // 3. Find the Booking
+        $reservation = \App\Models\Reservation::findOrFail($reservationId);
+
+        // 4. Security Check (Ensure user owns this booking)
         if ($reservation->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized. This booking does not belong to your account.');
+            abort(403, 'Unauthorized action.');
         }
 
-        $isPastTrip = Carbon::parse($reservation->schedule->departure_time)->isPast();
-        
-        if ($isPastTrip || $reservation->cancellation_status !== 'none') {
-             return back()->with('error', 'This booking cannot be cancelled or is already under review.');
-        }
+        // 5. Update the Database
+        // Since you fixed $fillable in Reservation.php, we can use the clean update() method
+        $reservation->update([
+            'cancellation_status' => 'pending',
+            'cancellation_reason' => $request->cancellation_reason,
+        ]);
 
-        $updated = DB::table('reservations')
-            ->where('id', $reservationId)
-            ->update([
-                'cancellation_status' => 'pending',
-                'cancellation_reason' => $request->cancellation_reason,
-                'updated_at' => now(), 
-            ]);
-
-        if (!$updated) {
-            // If even raw SQL fails, the database connection is faulty or the ENUM definition is wrong.
-            return back()->with('error', 'FATAL ERROR: Raw database update failed.');
-        }
+        // 6. Redirect with Success Message
+        return redirect()->route('user.bookings.index')
+            ->with('success', 'Cancellation request submitted successfully.');
     }
 }

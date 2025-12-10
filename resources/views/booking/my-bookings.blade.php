@@ -24,10 +24,24 @@
                                     $isUpcoming = \Carbon\Carbon::parse($reservation->schedule->departure_time)->isFuture();
                                 @endphp
 
-                                <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
-                                    {{ $isUpcoming ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500' }}">
-                                    {{ $isUpcoming ? 'Scheduled' : 'Completed' }}
-                                </span>
+                                @if ($reservation->cancellation_status === 'approved' || $reservation->status === 'cancelled')
+                                    {{-- Case 1: Booking is Cancelled --}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        CANCELLED
+                                    </span>
+
+                                @elseif ($reservation->cancellation_status === 'pending')
+                                    {{-- Case 2: Cancellation Requested --}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        PENDING REVIEW
+                                    </span>
+
+                                @else
+                                    {{-- Case 3: Active / Scheduled --}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        SCHEDULED
+                                    </span>
+                                @endif
                                 <p class="text-2xl font-black text-green-600 mt-1">
                                     ₱ {{ number_format($reservation->schedule->route->price, 2) }}
                                 </p>

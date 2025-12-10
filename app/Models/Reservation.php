@@ -14,19 +14,17 @@ class Reservation extends Model
         'schedule_id',
         'seat_number',
         'status',
-        'cancellation_status',
-        'cancellation_reason',
         'transaction_id',
         'payment_method',
+        'cancellation_status',
+        'cancellation_reason',
     ];
 
-    // Relationship: A reservation belongs to a User
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // Relationship: A reservation belongs to a Schedule
     public function schedule()
     {
         return $this->belongsTo(Schedule::class);
