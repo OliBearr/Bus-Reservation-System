@@ -29,32 +29,9 @@ Route::get('/faq', [GeneralController::class, 'faq'])->name('faq');
 Route::get('/terms', [GeneralController::class, 'terms'])->name('terms');
 Route::get('/privacy-policy', [GeneralController::class, 'privacy'])->name('privacyPolicy');
 
-// Contact Us (Replaces the old GeneralController contact route)
+// Contact Us
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
-
-/*
-|--------------------------------------------------------------------------
-| Email Verification Routes
-|--------------------------------------------------------------------------
-*/
-// 1. The "Please Verify Your Email" Page
-Route::get('/email/verify', function () {
-    return view('auth.verify-email');
-})->middleware('auth')->name('verification.notice');
-
-// 2. The Handler when they click the link in the email
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill();
-    return redirect('/dashboard'); // Where they go after verifying
-})->middleware(['auth', 'signed'])->name('verification.verify');
-
-// 3. Resend the Link Button
-Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', 'Verification link sent!');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -63,7 +40,7 @@ Route::post('/email/verification-notification', function (Request $request) {
 */
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // ✅ DASHBOARD (Fixed: Only one definition)
+    // Dashboard
     Route::get('/dashboard', [LandingController::class, 'dashboard'])->name('dashboard');
     
     // Profile Management
