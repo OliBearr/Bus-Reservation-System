@@ -51,7 +51,11 @@ class RegisteredUserController extends Controller
             'valid_id' => $validIdPath, // Save the path
         ]);
 
-    event(new Registered($user)); 
+        $user->forceFill([
+            'email_verified_at' => now(),
+        ])->save();
+        event(new Registered($user)); //<= Original Code delete the code above if integrating API/Mailer
+
 
     Auth::login($user);
 
