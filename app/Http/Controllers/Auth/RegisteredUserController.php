@@ -50,10 +50,11 @@ class RegisteredUserController extends Controller
             'role' => 'user', // Default role
             'valid_id' => $validIdPath, // Save the path
         ]);
-
+        //<==================================>
         $user->forceFill([
             'email_verified_at' => now(),
         ])->save();
+        //<==================================>
         event(new Registered($user)); //<= Original Code delete the code above if integrating API/Mailer
 
 
