@@ -2,94 +2,65 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Route as BusRoute; // Renamed to avoid confusion with Laravel Route
+use App\Models\Route as BusRoute; 
 use App\Models\Schedule;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class LandingController extends Controller
 {
     public function index(Request $request)
     {
-        $origins = BusRoute::select('origin')->distinct()->orderBy('origin')->pluck('origin');
-        $destinations = BusRoute::select('destination')->distinct()->orderBy('destination')->pluck('destination');
-        
-        // NEW: Get unique Bus Types for the filter dropdown
-        $busTypes = \App\Models\Bus::select('type')->distinct()->orderBy('type')->pluck('type');
-
-        $searchDate = $request->input('date', date('Y-m-d'));
-
-        // Generate Date Carousel
-        $dates = [];
-        $carbonDate = \Carbon\Carbon::parse($searchDate);
-        for ($i = -3; $i <= 3; $i++) {
-            $dates[] = $carbonDate->copy()->addDays($i);
-        }
-
-        // Query Schedules
-        $query = Schedule::with(['bus', 'route','reservations'])
-            ->withCount('reservations')
-            ->whereDate('departure_time', $searchDate);
-
-        if ($request->filled('origin')) {
-            $query->whereHas('route', function($q) use ($request) {
-                $q->where('origin', $request->origin);
-            });
-        }
-
-        if ($request->filled('destination')) {
-            $query->whereHas('route', function($q) use ($request) {
-                $q->where('destination', $request->destination);
-            });
-        }
-
-        // NEW: Filter by Bus Type
-        if ($request->filled('bus_type')) {
-            $query->whereHas('bus', function($q) use ($request) {
-                $q->where('type', $request->bus_type);
-            });
-        }
-
-        // Get results
-        $schedules = $query->orderBy('departure_time')->get();
-
-        // NEW (Fixed): Only filter if the value is explicitly '1'
-        if ($request->input('hide_full') == '1') {
-            $schedules = $schedules->filter(function ($schedule) {
-                return ($schedule->bus->capacity - $schedule->reservations_count) > 0;
-            });
-        }
-
-        // Pass $busTypes to the view
-        return view('welcome', compact('origins', 'destinations', 'schedules', 'searchDate', 'dates', 'busTypes'));
+        return $this->commonSearch($request, 'welcome');
     }
 
-    // Add this new method for the Logged-in Dashboard
     public function dashboard(Request $request)
     {
-        // --- FIX: ADMIN REDIRECT ---
-        // If the logged-in user is an Admin, send them to the Admin Panel immediately
-        if (auth()->user()->role === 'admin') {
+        // Admin Redirect
+        if (auth()->check() && auth()->user()->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
 
-        // --- NORMAL USER LOGIC (Search & Booking) ---
+        return $this->commonSearch($request, 'dashboard');
+    }
+
+    // Shared Logic to avoid duplicate code
+    private function commonSearch(Request $request, $viewName)
+    {
         $origins = BusRoute::select('origin')->distinct()->orderBy('origin')->pluck('origin');
         $destinations = BusRoute::select('destination')->distinct()->orderBy('destination')->pluck('destination');
         $busTypes = \App\Models\Bus::select('type')->distinct()->orderBy('type')->pluck('type');
 
-        $searchDate = $request->input('date', date('Y-m-d'));
+        // 1. Define Minimum Date (Yesterday)
+        $minDate = Carbon::now()->subDay()->startOfDay();
 
-        // Date Carousel
-        $dates = [];
-        $carbonDate = \Carbon\Carbon::parse($searchDate);
-        for ($i = -3; $i <= 3; $i++) {
-            $dates[] = $carbonDate->copy()->addDays($i);
+        // 2. Get Requested Date
+        $requestDate = $request->input('date', date('Y-m-d'));
+        $searchDate = Carbon::parse($requestDate)->startOfDay();
+
+        // Security: If user tries to go before Min Date, force them back
+        if ($searchDate->lt($minDate)) {
+            $searchDate = $minDate->copy();
         }
 
-        // Query
+        // 3. GENERATE DYNAMIC CAROUSEL
+        // Try to start 3 days before selected date (to center it), but never go below minDate
+        $startCarousel = $searchDate->copy()->subDays(3);
+        
+        // If centering pushes us into the past (before minDate), reset start to minDate
+        if ($startCarousel->lt($minDate)) {
+            $startCarousel = $minDate->copy();
+        }
+
+        $dates = [];
+        for ($i = 0; $i < 7; $i++) {
+            $dates[] = $startCarousel->copy()->addDays($i);
+        }
+
+        // 4. Query Schedules
         $query = Schedule::with(['bus', 'route', 'reservations'])
             ->withCount('reservations')
-            ->whereDate('departure_time', $searchDate);
+            ->whereDate('departure_time', $searchDate->format('Y-m-d'));
 
         if ($request->filled('origin')) {
             $query->whereHas('route', function($q) use ($request) {
@@ -117,6 +88,10 @@ class LandingController extends Controller
             });
         }
 
-        return view('dashboard', compact('origins', 'destinations', 'schedules', 'searchDate', 'dates', 'busTypes'));
+        // Pass properly formatted date string back to view
+        $formattedSearchDate = $searchDate->format('Y-m-d');
+
+        return view($viewName, compact('origins', 'destinations', 'schedules', 'dates', 'busTypes'))
+                ->with('searchDate', $formattedSearchDate);
     }
 }

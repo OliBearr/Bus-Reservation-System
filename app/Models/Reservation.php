@@ -13,6 +13,8 @@ class Reservation extends Model
         'user_id',
         'schedule_id',
         'seat_number',
+        'passenger_name',
+        'discount_id_number',
         'status',
         'transaction_id',
         'payment_method',

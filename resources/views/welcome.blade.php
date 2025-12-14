@@ -1,326 +1,313 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'BusPH') }}</title>
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        /* Hide scrollbar */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+<x-app-layout>
+    {{-- 1. LOAD LEAFLET ASSETS --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-        /* TOGGLE SWITCH ANIMATION */
-        .toggle-checkbox {
-            /* Start at original position */
-            transform: translateX(0);
-            transition: transform 0.3s ease-in-out, background-color 0.3s, border-color 0.3s;
-        }
-        
-        .toggle-checkbox:checked {
-            /* Move 100% of its own width to the right */
-            transform: translateX(100%); 
-            border-color: #0059ff;
-        }
-        
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #0059ff;
-        }
-    </style>
-</head>
-<body class="font-sans antialiased bg-[#F3F4F6] flex flex-col min-h-screen">
+    {{-- SETUP DATES --}}
+    @php
+        $minDate = \Carbon\Carbon::now()->subDay()->format('Y-m-d');
+        $currentDate = $searchDate ?? date('Y-m-d');
+    @endphp
 
-    <nav class="bg-[#001233] text-white py-4 shadow-md z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <img src="{{ asset('images/logo.png') }}" alt="BusPH" class="h-10 w-auto"> 
-                <span class="font-bold text-xl">BusPH</span>
-            </div>
-
-            <div class="flex items-center gap-8">
-                {{-- Consolidated About Us Link --}}
-                <a href="{{ route('about') }}" class="text-sm font-medium hover:text-gray-300 transition">ABOUT US</a>
-                
-                @if (Route::has('login'))
-                    @auth
-                        @if(auth()->user()->role === 'admin')
-                            <a href="{{ route('admin.dashboard') }}" class="bg-white text-[#001233] px-6 py-2 rounded font-bold text-sm hover:bg-gray-100 transition">ADMIN PANEL</a>
-                        @else
-                            <a href="{{ url('/dashboard') }}" class="bg-white text-[#001233] px-6 py-2 rounded font-bold text-sm hover:bg-gray-100 transition">DASHBOARD</a>
-                        @endif
-                    @else
-                        <a href="{{ route('login') }}" class="bg-white text-[#001233] px-6 py-2 rounded font-bold text-sm hover:bg-gray-100 transition">LOGIN NOW</a>
-                    @endauth
-                @endif
-            </div>
-        </div>
-    </nav>
-
+    {{-- HERO SECTION --}}
     <div class="relative w-full h-[450px] flex-shrink-0">
-        <img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2069&auto=format&fit=crop" 
-             class="w-full h-full object-cover">
-        
+        <img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2069&auto=format&fit=crop" class="w-full h-full object-cover">
         <div class="absolute inset-0 bg-[#001233]/40"></div>
-
         <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-8">
-                <span class="text-yellow-400">Hassle-Free.</span> Book Anytime. Anywhere. with BusPH
+            <h1 class="text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-8">
+                @auth <span class="text-yellow-400">Welcome, {{ Auth::user()->name }}!</span><br>Where to next?
+                @else <span class="text-yellow-400">Hassle-Free.</span> Book Anytime. Anywhere.<br>with BusPH @endauth
             </h1>
-
             <form id="searchForm" action="{{ route('home') }}" method="GET" class="bg-white p-2 rounded-lg shadow-2xl flex flex-col md:flex-row items-center gap-2 w-full max-w-5xl">
-                
                 <input type="hidden" name="hide_full" id="input_hide_full" value="{{ request('hide_full') }}">
                 <input type="hidden" name="bus_type" id="input_bus_type" value="{{ request('bus_type') }}">
-
+                
+                {{-- ORIGIN --}}
                 <div class="flex items-center bg-gray-50 rounded px-4 py-3 flex-1 w-full border border-gray-200">
-                    <div class="mr-3 text-[#001233]">
-                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    </div>
+                    <div class="mr-3 text-[#001233]"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
                     <div class="text-left w-full">
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide">From Terminal</label>
                         <select name="origin" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold focus:ring-0 cursor-pointer outline-none">
                             <option value="">Select Origin</option>
-                            @foreach($origins as $origin)
-                                <option value="{{ $origin }}" {{ request('origin') == $origin ? 'selected' : '' }}>{{ $origin }}</option>
-                            @endforeach
+                            @foreach($origins as $origin) <option value="{{ $origin }}" {{ request('origin') == $origin ? 'selected' : '' }}>{{ $origin }}</option> @endforeach
                         </select>
                     </div>
                 </div>
-
+                {{-- ARROW --}}
                 <div class="hidden md:flex bg-gray-100 rounded-full p-2 text-[#001233]">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                 </div>
-
+                {{-- DESTINATION --}}
                 <div class="flex items-center bg-gray-50 rounded px-4 py-3 flex-1 w-full border border-gray-200">
-                    <div class="mr-3 text-[#001233]">
-                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    </div>
+                    <div class="mr-3 text-[#001233]"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
                     <div class="text-left w-full">
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide">To Terminal</label>
                         <select name="destination" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold focus:ring-0 cursor-pointer outline-none">
                             <option value="">Select Destination</option>
-                            @foreach($destinations as $destination)
-                                <option value="{{ $destination }}" {{ request('destination') == $destination ? 'selected' : '' }}>{{ $destination }}</option>
-                            @endforeach
+                            @foreach($destinations as $destination) <option value="{{ $destination }}" {{ request('destination') == $destination ? 'selected' : '' }}>{{ $destination }}</option> @endforeach
                         </select>
                     </div>
                 </div>
-
+                {{-- DATE --}}
                 <div class="flex items-center bg-gray-50 rounded px-4 py-3 flex-1 w-full border border-gray-200">
-                    <div class="mr-3 text-[#001233]">
-                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    </div>
+                    <div class="mr-3 text-[#001233]"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
                     <div class="text-left w-full">
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide">Trip Date</label>
-                        <input type="date" name="date" id="input_date" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold focus:ring-0 outline-none" value="{{ $searchDate }}">
+                        <input type="date" name="date" id="input_date" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold focus:ring-0 outline-none" value="{{ $currentDate }}" min="{{ $minDate }}">
                     </div>
                 </div>
-
-                <button type="submit" class="bg-[#001233] hover:bg-blue-900 text-white font-bold py-4 px-8 rounded h-full w-full md:w-auto shadow-lg transition tracking-wide">
-                    Find Available
-                </button>
+                <button type="submit" class="bg-[#001233] hover:bg-blue-900 text-white font-bold py-4 px-8 rounded h-full w-full md:w-auto shadow-lg transition tracking-wide">Find Available</button>
             </form>
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+    {{-- CONTENT AREA --}}
+    <div class="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
         
-        <div class="mb-8">
+        {{-- FILTERS (Unchanged) --}}
+        <div class="mb-8 max-w-7xl mx-auto">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <button onclick="toggleFilterDrawer()" class="flex items-center gap-2 text-[#001233] font-bold hover:text-blue-700 mb-4 md:mb-0 transition focus:outline-none">
                     <svg id="filter-icon" class="w-6 h-6 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span id="filter-text">Add Filter</span>
                 </button>
-
                 <div class="flex items-center gap-3">
                     <div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in">
-                        
-                        <label for="toggle" 
-                               class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
-                        
-                        <input type="checkbox" id="toggle" 
-                               class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer top-0 left-0"
-                               {{ request('hide_full') ? 'checked' : '' }}
-                               onchange="toggleFullBooked(this)"/>
+                        <label for="toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        <input type="checkbox" id="toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer top-0 left-0" {{ request('hide_full') ? 'checked' : '' }} onchange="toggleFullBooked(this)"/>
                     </div>
                     <label for="toggle" class="text-gray-500 font-medium cursor-pointer">Hide Fully-Booked Trips</label>
                 </div>
             </div>
-
             <div id="filter-drawer" class="{{ request('bus_type') ? '' : 'hidden' }} mt-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200 animate-fade-in-down">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Filter by Bus Type</p>
                 <div class="flex gap-3 flex-wrap">
-                    <button onclick="setBusType('')" 
-                            class="px-6 py-2 rounded-full text-sm font-bold border transition {{ !request('bus_type') ? 'bg-[#001233] text-white border-[#001233]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400' }}">
-                        All Types
-                    </button>
+                    <button onclick="setBusType('')" class="px-6 py-2 rounded-full text-sm font-bold border transition {{ !request('bus_type') ? 'bg-[#001233] text-white border-[#001233]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400' }}">All Types</button>
                     @if(isset($busTypes))
                         @foreach($busTypes as $type)
-                            <button onclick="setBusType('{{ $type }}')" 
-                                    class="px-6 py-2 rounded-full text-sm font-bold border transition {{ request('bus_type') == $type ? 'bg-[#001233] text-white border-[#001233]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400' }}">
-                                {{ $type }}
-                            </button>
+                            <button onclick="setBusType('{{ $type }}')" class="px-6 py-2 rounded-full text-sm font-bold border transition {{ request('bus_type') == $type ? 'bg-[#001233] text-white border-[#001233]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400' }}">{{ $type }}</button>
                         @endforeach
                     @endif
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 mb-10">
-            <button onclick="changeDate(-1)" class="bg-white p-3 rounded-xl shadow-sm hover:shadow-md text-[#001233] transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-
+        {{-- DATE CAROUSEL (Unchanged) --}}
+        <div class="flex items-center justify-between gap-4 mb-10 max-w-7xl mx-auto">
+            @if($currentDate <= $minDate)
+                <button disabled class="bg-gray-100 p-3 rounded-xl text-gray-300 cursor-not-allowed"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+            @else
+                <button onclick="changeDate(-1)" class="bg-white p-3 rounded-xl shadow-sm hover:shadow-md text-[#001233] transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+            @endif
             <div class="flex gap-2 overflow-x-auto no-scrollbar w-full">
                 @if(isset($dates))
                     @foreach($dates as $date)
-                        @php 
-                            $isActive = $date->format('Y-m-d') === $searchDate; 
-                        @endphp
-                        <div onclick="setDate('{{ $date->format('Y-m-d') }}')" 
-                             class="flex-1 min-w-[140px] text-center py-4 bg-white border {{ $isActive ? 'border-[#001233] border-b-4' : 'border-gray-200' }} cursor-pointer hover:bg-gray-50 transition rounded-lg shadow-sm">
-                            <p class="text-sm font-bold {{ $isActive ? 'text-[#001233]' : 'text-gray-500' }}">
-                                {{ $date->format('D, d M') }}
-                            </p>
+                        @php $dString = $date->format('Y-m-d'); $isActive = $dString === $currentDate; @endphp
+                        <div onclick="setDate('{{ $dString }}')" class="flex-1 min-w-[140px] text-center py-4 bg-white border {{ $isActive ? 'border-[#001233] border-b-4' : 'border-gray-200' }} cursor-pointer hover:bg-gray-50 transition rounded-lg shadow-sm">
+                            <p class="text-sm font-bold {{ $isActive ? 'text-[#001233]' : 'text-gray-500' }}">{{ $date->format('D, d M') }}</p>
                         </div>
                     @endforeach
                 @endif
             </div>
-
-            <button onclick="changeDate(1)" class="bg-white p-3 rounded-xl shadow-sm hover:shadow-md text-[#001233] transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
+            <button onclick="changeDate(1)" class="bg-white p-3 rounded-xl shadow-sm hover:shadow-md text-[#001233] transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
         </div>
 
-        <div class="space-y-4">
+        {{-- RESULTS LIST --}}
+        <div class="space-y-4 max-w-7xl mx-auto">
             @forelse($schedules as $schedule)
                 @php
                     $seatsTaken = $schedule->reservations_count ?? 0;
                     $capacity = $schedule->bus->capacity ?? 0;
                     $seatsLeft = $capacity - $seatsTaken;
                     $isFull = $seatsLeft <= 0;
+                    $isPast = \Carbon\Carbon::parse($schedule->departure_time)->isPast();
+                    $seatsTakenArray = $schedule->reservations->pluck('seat_number')->toArray();
                 @endphp
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
-                <div class="flex flex-col md:flex-row justify-between items-center border-b border-gray-100 pb-6 mb-4">
-                    <div class="flex items-center gap-12 w-full md:w-auto">
-                        <div class="text-center md:text-left">
-                            <h3 class="text-3xl font-black text-[#001233]">
-                                {{ \Carbon\Carbon::parse($schedule->departure_time)->format('h:i A') }}
-                            </h3>
-                        </div>
-                        <div class="flex items-center gap-8 flex-1">
-                            <span class="text-xl font-bold text-[#001233]">{{ $schedule->route->origin }}</span>
-                            <div class="flex-1">
-                                <svg class="w-6 h-6 text-[#001233] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+            <div x-data="{ 
+                    expanded: false, 
+                    showMap: false, // ✅ NEW: Map Visibility Toggle
+                    selected: [], 
+                    price: {{ $schedule->route->price }},
+                    mapInitialized: false,
+                    toggleSeat(seat) {
+                        if (this.selected.includes(seat)) this.selected = this.selected.filter(s => s !== seat);
+                        else this.selected.push(seat);
+                    },
+                    get total() { return (this.selected.length * this.price).toLocaleString('en-US', {minimumFractionDigits: 2}); },
+                    initMap() {
+                        if (this.mapInitialized) return;
+                        this.mapInitialized = true;
+                        setTimeout(() => {
+                            const originCoords = [14.6178, 121.0572]; 
+                            const destCoords = [13.1391, 123.7438];
+                            var map = L.map('map-{{ $schedule->id }}', { center: originCoords, zoom: 6, zoomControl: false, attributionControl: false });
+                            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+                            var busIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', iconSize: [24, 24], iconAnchor: [12, 24] });
+                            var pinIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png', iconSize: [24, 24], iconAnchor: [12, 24] });
+                            L.marker(originCoords, {icon: busIcon}).addTo(map);
+                            L.marker(destCoords, {icon: pinIcon}).addTo(map);
+                            var routeLine = L.polyline([originCoords, destCoords], { color: '#001233', weight: 3, opacity: 0.8, dashArray: '5, 5' }).addTo(map);
+                            map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
+                            map.invalidateSize();
+                        }, 200);
+                    }
+                 }" 
+                 class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
+                
+                <div class="p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center border-b border-gray-100 pb-6 mb-4">
+                        <div class="flex items-center gap-12 w-full md:w-auto">
+                            <div class="text-center md:text-left"><h3 class="text-3xl font-black text-[#001233]">{{ \Carbon\Carbon::parse($schedule->departure_time)->format('h:i A') }}</h3></div>
+                            <div class="flex items-center gap-8 flex-1">
+                                <span class="text-xl font-bold text-[#001233]">{{ $schedule->route->origin }}</span>
+                                <div class="flex-1"><svg class="w-6 h-6 text-[#001233] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
+                                <span class="text-xl font-bold text-[#001233]">{{ $schedule->route->destination }}</span>
                             </div>
-                            <span class="text-xl font-bold text-[#001233]">{{ $schedule->route->destination }}</span>
                         </div>
+                        <div class="mt-4 md:mt-0"><span class="text-2xl font-bold text-[#001233]">PHP {{ number_format($schedule->route->price, 2) }}</span></div>
                     </div>
-                    <div class="mt-4 md:mt-0">
-                        <span class="text-2xl font-bold text-[#001233]">PHP {{ number_format($schedule->route->price, 2) }}</span>
+
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex gap-12 text-sm text-gray-500 w-full md:w-auto">
+                            <div><p class="font-bold text-[#001233]">Bus Type</p><p>{{ $schedule->bus->type }}</p></div>
+                            <div><p class="font-bold text-[#001233]">Trip Type</p><p>One Way</p></div>
+                            <div><p class="font-bold text-[#001233]">Code</p><p>BC{{ $schedule->id }}</p></div>
+                        </div>
+
+                        <div class="flex items-center gap-4 w-full md:w-auto justify-end">
+                            @if($isPast)
+                                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gray-100 text-gray-500 border border-gray-300">DEPARTED</span>
+                            @elseif($isFull)
+                                <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">FULLY BOOKED</span>
+                            @else
+                                <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white text-green-700 border border-gray-300">
+                                    <span class="w-2.5 h-2.5 mr-2 bg-green-500 rounded-full"></span>{{ $seatsLeft }} left
+                                </span>
+
+                                {{-- ✅ VIEW MAP BUTTON --}}
+                                <button @click="expanded = true; showMap = !showMap; if(showMap) initMap()" 
+                                        :class="showMap ? 'text-[#001233]' : 'text-gray-400'"
+                                        class="hover:text-[#001233] font-bold text-xs flex items-center gap-1 transition mr-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                                    <span x-text="showMap ? 'Hide Map' : 'View Map'"></span>
+                                </button>
+
+                                <button @click="expanded = !expanded" 
+                                        :class="expanded ? 'bg-gray-200 text-[#001233]' : 'bg-[#001233] text-white hover:bg-blue-900'"
+                                        class="font-bold py-2 px-6 rounded-full shadow transition flex items-center gap-2">
+                                    <span x-text="expanded ? 'Hide Seats' : 'Show Seats'"></span>
+                                    <svg x-show="!expanded" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <svg x-show="expanded" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div class="flex gap-12 text-sm text-gray-500 w-full md:w-auto">
-                        <div>
-                            <p class="font-bold text-[#001233]">Bus Type</p>
-                            <p>{{ $schedule->bus->type }}</p>
+                {{-- EXPANDED SECTION --}}
+                <div x-show="expanded" x-collapse class="bg-white border-t border-gray-100 px-6 py-8">
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        
+                        {{-- 1. SEATS GRID (Width Dynamic) --}}
+                        <div :class="showMap ? 'lg:w-1/3' : 'lg:w-1/2'" class="w-full border-r border-gray-100 pr-4 transition-all duration-300">
+                            <h4 class="font-bold text-[#001233] mb-4 text-sm">Select Seat(s)</h4>
+                            <div class="bg-[#F3F4F6] p-4 rounded-xl border border-gray-200 max-w-sm mx-auto">
+                                <div class="grid grid-cols-5 gap-2">
+                                    @for($i = 1; $i <= $schedule->bus->capacity; $i++)
+                                        @php $isTaken = in_array($i, $seatsTakenArray); @endphp
+                                        @if($i % 4 == 3 && $i > 1) <div></div> @endif
+                                        <button @if(!$isTaken) @click="toggleSeat({{ $i }})" @endif
+                                                :class="selected.includes({{ $i }}) ? 'bg-[#10B981] text-white border-[#10B981] shadow-md scale-105' : '{{ $isTaken ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:border-[#001233]' }}'"
+                                                class="h-8 w-8 rounded-md font-bold text-xs transition border flex items-center justify-center transform duration-150">
+                                            {{ $isTaken ? 'X' : $i }}
+                                        </button>
+                                    @endfor
+                                </div>
+                            </div>
+                            <div class="flex gap-4 mt-4 text-xs text-gray-500 font-medium justify-center">
+                                <div class="flex items-center gap-1"><div class="w-3 h-3 rounded bg-white border border-gray-300"></div> Free</div>
+                                <div class="flex items-center gap-1"><div class="w-3 h-3 rounded bg-gray-400"></div> Taken</div>
+                                <div class="flex items-center gap-1"><div class="w-3 h-3 rounded bg-[#10B981]"></div> Yours</div>
+                            </div>
                         </div>
-                        <div>
-                            <p class="font-bold text-[#001233]">Trip Type</p>
-                            <p>One Way</p>
-                        </div>
-                        <div>
-                            <p class="font-bold text-[#001233]">Code</p>
-                            <p>BC{{ $schedule->id }}</p>
-                        </div>
-                    </div>
 
-                    <div class="flex items-center gap-4 w-full md:w-auto justify-end">
-                        @if($isFull)
-                            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
-                                FULLY BOOKED
-                            </span>
-                            <button disabled class="bg-gray-300 text-white font-bold py-2 px-6 rounded-full cursor-not-allowed">
-                                Select Seat
-                            </button>
-                        @else
-                            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white text-green-700 border border-gray-300">
-                                <span class="w-2.5 h-2.5 mr-2 bg-green-500 rounded-full"></span>
-                                {{ $seatsLeft }} left
-                            </span>
-                            <button class="bg-[#001233] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-full shadow transition flex items-center gap-2">
-                                <a href="{{ route('booking.seats', $schedule->id) }}" class="bg-[#001233] hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-full shadow transition flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    Show Seats
-                                </a>
-                            </button>
-                        @endif
+                        {{-- 2. MAP (Toggleable) --}}
+                        <div x-show="showMap" x-transition 
+                             class="w-full lg:w-1/3 bg-white p-1 rounded-xl shadow-sm border border-gray-200 relative group h-64 lg:h-auto">
+                            <div id="map-{{ $schedule->id }}" style="height: 100%; width: 100%; border-radius: 0.5rem; z-index: 1;"></div>
+                            <div class="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded shadow text-[10px] font-bold text-gray-500 uppercase z-[400]">Route Map</div>
+                        </div>
+
+                        {{-- 3. SUMMARY (Width Dynamic) --}}
+                        <div :class="showMap ? 'lg:w-1/3' : 'lg:w-1/2'" class="w-full pl-4 flex flex-col justify-between py-2 transition-all duration-300">
+                            <div class="space-y-4 mb-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-500 text-sm font-medium">Pick-up Time</span>
+                                    <span class="font-black text-[#001233] text-lg">{{ \Carbon\Carbon::parse($schedule->departure_time)->format('h:i A') }}</span>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-400 font-bold uppercase mb-1 block tracking-wider">Route</label>
+                                    <div class="w-full px-3 py-2 rounded bg-gray-50 text-[#001233] font-bold text-sm border border-gray-100">
+                                        {{ $schedule->route->origin }} &rarr; {{ $schedule->route->destination }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <div class="space-y-2 mb-4">
+                                    <div class="flex justify-between text-sm text-gray-500">
+                                        <span>Seat(s)</span>
+                                        <span class="font-bold text-[#001233]" x-text="selected.length > 0 ? selected.join(', ') : '-'"></span>
+                                    </div>
+                                    <div class="flex justify-between items-end border-t border-gray-200 pt-2">
+                                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Total</span>
+                                        <span class="font-black text-xl text-[#001233]">PHP <span x-text="total"></span></span>
+                                    </div>
+                                </div>
+
+                                <form id="reserveForm-{{ $schedule->id }}" action="{{ route('booking.details') }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
+                                    <input type="hidden" name="seats" :value="selected.join(',')">
+
+                                    <button type="submit"
+                                            :disabled="selected.length === 0"
+                                            :class="selected.length > 0 ? 'bg-[#001233] hover:bg-blue-900 text-white shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
+                                            class="w-full py-3 font-bold rounded-lg transition uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+                                        <span class="btn-text">Reserve Now</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
             @empty
                 <div class="flex flex-col items-center justify-center py-20 text-center">
                     <img src="{{ asset('images/no-trips.png') }}" alt="No Available Trips" class="h-24 w-auto mb-4 opacity-40 grayscale">
                     <h3 class="text-xl font-medium text-gray-500">No Available Trips</h3>
                     <p class="text-gray-400 mt-2 text-sm">We couldn't find any buses for this date.<br>Try changing your filters.</p>
-                    <a href="{{ route('home') }}" class="mt-6 px-6 py-2 bg-gray-200 text-gray-700 font-bold rounded-full hover:bg-gray-300 transition text-sm">
-                        Clear All Filters
-                    </a>
+                    <a href="{{ route('home') }}" class="mt-6 px-6 py-2 bg-gray-200 text-gray-700 font-bold rounded-full hover:bg-gray-300 transition text-sm">Clear All Filters</a>
                 </div>
             @endforelse
         </div>
     </div>
 
-    <footer class="bg-[#001233] text-white py-6 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-sm">© 2025 BusPH. All rights reserved.</p>
-        </div>
-    </footer>
-
+    {{-- SCRIPTS (Unchanged) --}}
     <script>
-        function setDate(date) {
-            document.getElementById('input_date').value = date;
-            document.getElementById('searchForm').submit();
-        }
-        function toggleFullBooked(checkbox) {
-            const val = checkbox.checked ? '1' : '';
-            document.getElementById('input_hide_full').value = val;
-            document.getElementById('searchForm').submit();
-        }
-        function setBusType(type) {
-            document.getElementById('input_bus_type').value = type;
-            document.getElementById('searchForm').submit();
-        }
+        function setDate(date) { document.getElementById('input_date').value = date; document.getElementById('searchForm').submit(); }
+        function toggleFullBooked(checkbox) { document.getElementById('input_hide_full').value = checkbox.checked ? '1' : ''; document.getElementById('searchForm').submit(); }
+        function setBusType(type) { document.getElementById('input_bus_type').value = type; document.getElementById('searchForm').submit(); }
         function toggleFilterDrawer() {
-            const drawer = document.getElementById('filter-drawer');
-            const icon = document.getElementById('filter-icon');
-            const text = document.getElementById('filter-text');
-            if (drawer.classList.contains('hidden')) {
-                drawer.classList.remove('hidden');
-                icon.style.transform = 'rotate(45deg)';
-                text.innerText = "Close Filters";
-            } else {
-                drawer.classList.add('hidden');
-                icon.style.transform = 'rotate(0deg)';
-                text.innerText = "Add Filter";
-            }
+            const drawer = document.getElementById('filter-drawer'); const icon = document.getElementById('filter-icon'); const text = document.getElementById('filter-text');
+            if (drawer.classList.contains('hidden')) { drawer.classList.remove('hidden'); icon.style.transform = 'rotate(45deg)'; text.innerText = "Close Filters"; } 
+            else { drawer.classList.add('hidden'); icon.style.transform = 'rotate(0deg)'; text.innerText = "Add Filter"; }
         }
         function changeDate(days) {
-            const currentInput = document.getElementById('input_date').value;
-            const current = currentInput ? new Date(currentInput) : new Date();
+            const current = new Date(document.getElementById('input_date').value); 
             current.setDate(current.getDate() + days);
-            const year = current.getFullYear();
-            const month = String(current.getMonth() + 1).padStart(2, '0');
-            const day = String(current.getDate()).padStart(2, '0');
-            setDate(`${year}-${month}-${day}`);
+            setDate(current.toISOString().split('T')[0]);
         }
     </script>
-
-</body>
-</html>
+</x-app-layout>

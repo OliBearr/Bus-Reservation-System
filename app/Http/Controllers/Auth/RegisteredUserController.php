@@ -51,10 +51,11 @@ class RegisteredUserController extends Controller
             'valid_id' => $validIdPath, // Save the path
         ]);
 
-        event(new Registered($user));
+    event(new Registered($user)); 
 
-        Auth::login($user);
+    Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+    // This redirect will now be intercepted by middleware if set up correctly
+    return redirect()->route('dashboard');
     }
 }

@@ -13,6 +13,10 @@ use App\Http\Controllers\AdminReservationController;
 use App\Http\Controllers\GeneralController;
 use App\Models\Reservation;
 use App\Http\Controllers\Admin\CancellationController;
+use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\ContactController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,14 +25,45 @@ use App\Http\Controllers\Admin\CancellationController;
 */
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/about', [GeneralController::class, 'about'])->name('about');
+Route::get('/faq', [GeneralController::class, 'faq'])->name('faq');
+Route::get('/terms', [GeneralController::class, 'terms'])->name('terms');
+Route::get('/privacy-policy', [GeneralController::class, 'privacy'])->name('privacyPolicy');
+
+// Contact Us (Replaces the old GeneralController contact route)
+Route::get('/contact', [ContactController::class, 'show'])->name('contact');
+Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated User Routes (User & Admin)
+| Email Verification Routes
+|--------------------------------------------------------------------------
+*/
+// 1. The "Please Verify Your Email" Page
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+// 2. The Handler when they click the link in the email
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return redirect('/dashboard'); // Where they go after verifying
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+// 3. Resend the Link Button
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Verification link sent!');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated User Routes (Protected by Auth & Email Verification)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'verified'])->group(function () {
     
+    // ✅ DASHBOARD (Fixed: Only one definition)
     Route::get('/dashboard', [LandingController::class, 'dashboard'])->name('dashboard');
     
     // Profile Management
@@ -36,27 +71,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Booking Process (Authenticated)
+    /*
+    |--------------------------------------------------------------------------
+    | Booking Flow
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/booking/details', [BookingController::class, 'showReservationDetails'])->name('booking.details');
+    Route::post('/booking/confirm', [BookingController::class, 'showConfirmation'])->name('booking.confirm');
+    Route::post('/booking/payment', [BookingController::class, 'showPayment'])->name('booking.payment');
+    Route::post('/booking/process', [BookingController::class, 'processBooking'])->name('booking.process');
+    Route::get('/booking/success/{id}', [BookingController::class, 'showSuccess'])->name('booking.success');
+
+    // Booking Process
     Route::get('/booking/{schedule}/seats', [BookingController::class, 'selectSeats'])->name('booking.seats');
     
     // User My Bookings
     Route::get('/my-bookings', [BookingController::class, 'myBookings'])->name('user.bookings.index');
     Route::get('/my-bookings/{reservation}/receipt', [BookingController::class, 'showReceipt'])->name('user.bookings.receipt');
     
-    // ✅ MOVED HERE: User Cancellation (Accessible by regular users)
+    // User Cancellation
     Route::post('/my-bookings/{reservation}/cancel', [BookingController::class, 'cancelBooking'])->name('user.bookings.cancel');
 });
-
-/*
-|--------------------------------------------------------------------------
-| Booking Flow (Public or Auth handled by controller validation)
-|--------------------------------------------------------------------------
-*/
-Route::post('/booking/details', [BookingController::class, 'showReservationDetails'])->name('booking.details');
-Route::post('/booking/confirm', [BookingController::class, 'showConfirmation'])->name('booking.confirm');
-Route::post('/booking/payment', [BookingController::class, 'showPayment'])->name('booking.payment');
-Route::post('/booking/process', [BookingController::class, 'processBooking'])->name('booking.process');
-Route::get('/booking/success/{id}', [BookingController::class, 'showSuccess'])->name('booking.success');
 
 
 /*
@@ -66,7 +101,7 @@ Route::get('/booking/success/{id}', [BookingController::class, 'showSuccess'])->
 */
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
-    
+
     // Bus Management
     Route::resource('/admin/buses', BusController::class)->names([
         'index' => 'admin.buses.index',
@@ -85,7 +120,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/admin/routes/{route}', [RouteController::class, 'update'])->name('admin.routes.update');
     Route::delete('/admin/routes/{id}', [RouteController::class, 'destroy'])->name('admin.routes.destroy');
 
-    // Schedule Management (Removed Duplicates)
+    // Schedule Management
     Route::get('/admin/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
     Route::get('/admin/schedules/create', [ScheduleController::class, 'create'])->name('admin.schedules.create');
     Route::post('/admin/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
@@ -93,11 +128,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/admin/schedules/{schedule}', [ScheduleController::class, 'update'])->name('admin.schedules.update');
     Route::delete('/admin/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
 
-    // ✅ MOVED HERE: Admin Reservation Viewing (Protected)
+    // Admin Reservation Viewing
     Route::get('/admin/reservations', [AdminReservationController::class, 'index'])->name('admin.reservations.index');
     Route::get('/admin/reservations/{id}', [AdminReservationController::class, 'show'])->name('admin.reservations.show');
 
-    // ✅ MOVED HERE: Admin Cancellation Approvals (Protected)
+    // Ticket Verification
+    Route::get('/admin/verify', [AdminController::class, 'verifyForm'])->name('admin.verify');
+    Route::post('/admin/verify', [AdminController::class, 'checkTicket'])->name('admin.verify.check');
+
+    // Admin Cancellation Approvals
     Route::prefix('admin/cancellations')->name('admin.cancellations.')->group(function () {
         Route::get('/', [CancellationController::class, 'index'])->name('index');
         Route::put('/{reservation}/approve', [CancellationController::class, 'approve'])->name('approve');

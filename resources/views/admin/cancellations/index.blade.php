@@ -1,77 +1,148 @@
 <x-admin-layout>
-    <x-slot name="header">Cancellation Requests</x-slot>
+    <div class="p-6">
+        <div class="max-w-7xl mx-auto space-y-8">
+            
+            {{-- HEADER --}}
+            <div class="flex items-center justify-between">
+                <h2 class="text-3xl font-black text-[#001233]">Cancellation Management</h2>
+                <span class="text-gray-500 text-sm">Overview of refund requests</span>
+            </div>
 
-    @if(session('success'))
-        <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow-sm relative" role="alert"><p>{{ session('success') }}</p></div>
-    @endif
-    @if(session('warning'))
-        <div class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded shadow-sm relative" role="alert"><p>{{ session('warning') }}</p></div>
-    @endif
-    @if(session('error'))
-        <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm relative" role="alert"><p>{{ session('error') }}</p></div>
-    @endif
-    
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-gray-600">
-                <thead class="bg-gray-50 text-xs uppercase font-bold text-gray-500 tracking-wider">
-                    <tr>
-                        <th class="px-6 py-4">Booking ID / Passenger</th>
-                        <th class="px-6 py-4">Route / Departure</th>
-                        <th class="px-6 py-4">Reason</th>
-                        <th class="px-6 py-4">Requested On</th>
-                        <th class="px-6 py-4 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse($requests as $reservation)
-                    <tr class="hover:bg-yellow-50 transition">
-                        <td class="px-6 py-4">
-                            <p class="font-mono font-bold text-yellow-800">#{{ $reservation->id }}</p>
-                            <p class="font-bold text-gray-800">{{ $reservation->user->name }}</p>
-                            <p class="text-xs text-gray-400">{{ $reservation->user->email }}</p>
-                        </td>
-                        <td class="px-6 py-4">
-                            <p class="font-medium text-[#001233]">{{ $reservation->schedule->route->origin }} → {{ $reservation->schedule->route->destination }}</p>
-                            <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($reservation->schedule->departure_time)->format('M d, Y • h:i A') }}</p>
-                        </td>
-                        <td class="px-6 py-4 italic max-w-sm overflow-hidden text-ellipsis">
-                            "{{ $reservation->cancellation_reason }}"
-                        </td>
-                        <td class="px-6 py-4 text-gray-500">
-                            {{ $reservation->updated_at->format('M d, Y') }}
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            <div class="flex flex-col gap-2 items-center">
-                                
-                                <form action="{{ route('admin.cancellations.approve', $reservation->id) }}" method="POST">
-                                    @csrf @method('PUT')
-                                    <button type="submit" onclick="return confirm('APPROVE CANCELLATION for #{{ $reservation->id }}? This will permanently cancel the booking.');"
-                                            class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition text-sm">
-                                        Approve
-                                    </button>
-                                </form>
+            {{-- SECTION 1: PENDING REQUESTS (Action Required) --}}
+            <div class="bg-white rounded-xl shadow-lg border border-red-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 bg-red-50 flex items-center gap-3">
+                    <div class="bg-red-100 text-red-600 p-2 rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="font-bold text-red-800 text-lg">Pending Requests (Action Required)</h3>
+                </div>
 
-                                <form action="{{ route('admin.cancellations.reject', $reservation->id) }}" method="POST">
-                                    @csrf @method('PUT')
-                                    <button type="submit" onclick="return confirm('REJECT CANCELLATION for #{{ $reservation->id }}? This will reactivate the booking.');"
-                                            class="text-red-600 hover:text-red-700 font-bold py-1 px-4 rounded-lg hover:bg-red-50 transition text-xs border border-red-200">
-                                        Reject
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-400">No pending cancellation requests.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="px-6 py-4 border-t border-gray-100">
-            {{ $requests->links() }}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                <th class="px-6 py-4 font-bold">Booking ID</th>
+                                <th class="px-6 py-4 font-bold">Passenger</th>
+                                <th class="px-6 py-4 font-bold">Route & Date</th>
+                                <th class="px-6 py-4 font-bold">Reason</th>
+                                <th class="px-6 py-4 font-bold text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($pendingCancellations as $reservation)
+                                <tr class="hover:bg-red-50/50 transition">
+                                    <td class="px-6 py-4 font-mono text-sm font-bold text-[#001233]">{{ $reservation->transaction_id ?? $reservation->id }}</td>
+                                    <td class="px-6 py-4">
+                                        <p class="font-bold text-gray-900">{{ $reservation->passenger_name ?? $reservation->first_name }}</p>
+                                        <p class="text-xs text-gray-500">{{ $reservation->email }}</p>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ $reservation->schedule->route->origin }} &rarr; {{ $reservation->schedule->route->destination }}
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            {{ \Carbon\Carbon::parse($reservation->schedule->departure_time)->format('M d, Y h:i A') }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600 italic max-w-xs truncate">
+                                        "{{ $reservation->cancellation_reason }}"
+                                    </td>
+                                    <td class="px-6 py-4 text-right space-x-2">
+                                        <form action="{{ route('admin.cancellations.approve', $reservation->id) }}" method="POST" class="inline-block">
+                                            @csrf @method('PUT')
+                                            <button type="submit" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-green-700 transition shadow-sm">
+                                                Approve
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('admin.cancellations.reject', $reservation->id) }}" method="POST" class="inline-block">
+                                            @csrf @method('PUT')
+                                            <button type="submit" class="bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-gray-300 transition">
+                                                Reject
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-400">
+                                        No pending cancellation requests.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- SECTION 2: HISTORY (Approved/Rejected) --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                    <div class="bg-gray-200 text-gray-600 p-2 rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="font-bold text-gray-700 text-lg">Cancellation History</h3>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-white text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
+                                <th class="px-6 py-4 font-bold">Booking ID</th>
+                                <th class="px-6 py-4 font-bold">Passenger</th>
+                                <th class="px-6 py-4 font-bold">Processed Date</th>
+                                <th class="px-6 py-4 font-bold">Status</th>
+                                <th class="px-6 py-4 font-bold text-right">Refund Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($historyCancellations as $history)
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4 font-mono text-xs text-gray-500">{{ $history->transaction_id ?? $history->id }}</td>
+                                    <td class="px-6 py-4 text-sm font-bold text-[#001233]">
+                                        {{ $history->passenger_name ?? $history->first_name }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">
+                                        {{ $history->updated_at->format('M d, Y') }}
+                                        <span class="text-xs text-gray-400 block">{{ $history->updated_at->format('h:i A') }}</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @if($history->cancellation_status === 'approved')
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 uppercase tracking-wide">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                Approved
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 uppercase tracking-wide">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                Rejected
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-mono font-bold text-gray-800">
+                                        @if($history->cancellation_status === 'approved')
+                                            @php 
+                                                // Calculate refund (assuming 100% refund logic, adjust if you have penalties)
+                                                $price = $history->schedule->route->price;
+                                                if($history->discount_id_number) $price *= 0.80;
+                                            @endphp
+                                            ₱ {{ number_format($price, 2) }}
+                                        @else
+                                            <span class="text-gray-300">₱ 0.00</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-8 text-center text-gray-400 text-sm">
+                                        No history available.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 </x-admin-layout>

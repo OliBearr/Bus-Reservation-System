@@ -18,18 +18,10 @@
                     <p class="text-lg font-mono font-bold text-[#001233] tracking-widest">{{ $id }}</p>
                 </div>
 
-                <a href="{{ route('dashboard') }}" class="block w-full py-4 bg-[#001233] text-white font-bold rounded-xl shadow-lg hover:bg-blue-900 transition transform hover:-translate-y-1">
+                <a href="{{ route('home') }}" class="block w-full py-4 bg-[#001233] text-white font-bold rounded-xl shadow-lg hover:bg-blue-900 transition transform hover:-translate-y-1">
                     Return to Dashboard
                 </a>
             </div>
-
         </div>
-
-        <footer class="bg-[#001233] text-white py-6 mt-auto">
-            <div class="max-w-7xl mx-auto px-4 text-center">
-                <p class="text-sm">© 2025 BusPH. All rights reserved.</p>
-            </div>
-        </footer>
-
     </div>
 </x-app-layout>

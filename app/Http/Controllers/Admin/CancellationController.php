@@ -14,12 +14,19 @@ class CancellationController extends Controller
      */
     public function index()
     {
-        $requests = Reservation::where('cancellation_status', 'pending')
-            ->with(['user', 'schedule.route', 'schedule.bus'])
-            ->orderBy('created_at', 'asc')
-            ->paginate(15);
-            
-        return view('admin.cancellations.index', compact('requests'));
+        // 1. Get Pending Requests (Actionable items)
+        $pendingCancellations = \App\Models\Reservation::where('cancellation_status', 'pending')
+            ->with(['schedule.route', 'schedule.bus']) // Optimize query
+            ->latest()
+            ->get();
+
+        // 2. Get History (Approved & Rejected items)
+        $historyCancellations = \App\Models\Reservation::whereIn('cancellation_status', ['approved', 'rejected'])
+            ->with(['schedule.route'])
+            ->latest() // Show newest first
+            ->get();
+
+        return view('admin.cancellations.index', compact('pendingCancellations', 'historyCancellations'));
     }
 
     /**

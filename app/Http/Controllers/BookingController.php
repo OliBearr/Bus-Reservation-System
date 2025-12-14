@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use App\Models\Booking;
 
 
 class BookingController extends Controller
 {
+    
     // Show the Seat Selection Page
     public function selectSeats($schedule_id)
     {
@@ -48,14 +50,17 @@ class BookingController extends Controller
     // Step 3: Show Confirmation Page
     public function showConfirmation(Request $request)
     {
-        // 1. Validate inputs
+        // 1. Validate inputs (Updated for Arrays)
         $validated = $request->validate([
             'schedule_id' => 'required|exists:schedules,id',
             'seats' => 'required|string',
-            'passenger_name' => 'required|string',
-            'passenger_email' => 'required|email',
-            'passenger_phone' => 'required|string',
-            'passenger_gender' => 'required|string',
+            'contact_phone' => 'required|string',
+            'contact_email' => 'required|email',
+            // Validate the array of passengers
+            'passengers' => 'required|array',
+            'passengers.*.first_name' => 'required|string',
+            'passengers.*.surname' => 'required|string',
+            'passengers.*.discount_id' => 'nullable|string',
         ]);
 
         // 2. Fetch Data
@@ -63,44 +68,87 @@ class BookingController extends Controller
         $selectedSeats = explode(',', $request->seats);
         $totalPrice = count($selectedSeats) * $schedule->route->price;
         
-        // 3. Group Passenger Info
-        $passenger = $request->only(['passenger_name', 'passenger_email', 'passenger_phone', 'passenger_gender']);
-
-        return view('booking.confirm', compact('schedule', 'selectedSeats', 'totalPrice', 'passenger'));
+        // 3. Pass data to View
+        return view('booking.confirm', compact(
+            'schedule', 
+            'selectedSeats', 
+            'totalPrice', 
+            'validated' // Contains passengers and contact info
+        ));
     }
     // Step 4: Show Payment Page
     public function showPayment(Request $request)
     {
-        // Pass all the data forward to the payment view
-        $data = $request->all();
+        $data = $request->all(); 
+        
         $schedule = Schedule::with('route')->findOrFail($request->schedule_id);
         $seats = explode(',', $request->seats);
-        $totalPrice = count($seats) * $schedule->route->price;
+        $basePrice = $schedule->route->price;
 
-        return view('booking.payment', compact('data', 'schedule', 'totalPrice', 'seats'));
+        // --- CALCULATE BREAKDOWN ---
+        $priceBreakdown = [];
+        $totalPrice = 0;
+
+        if (isset($data['passengers']) && is_array($data['passengers'])) {
+            foreach ($data['passengers'] as $index => $passenger) {
+                $ticketPrice = $basePrice;
+                $discountId = $passenger['discount_id'] ?? '';
+                $isDiscounted = false;
+
+                // CHECK FORMAT: 4 digits - 4 digits (e.g., 1234-5678)
+                if (preg_match('/^\d{4}-\d{4}$/', $discountId)) {
+                    $ticketPrice = $basePrice * 0.80; // 20% Off
+                    $isDiscounted = true;
+                }
+
+                $totalPrice += $ticketPrice;
+
+                // Save details for the view
+                $priceBreakdown[] = [
+                    'name' => $passenger['first_name'] . ' ' . $passenger['surname'],
+                    'original_price' => $basePrice,
+                    'final_price' => $ticketPrice,
+                    'is_discounted' => $isDiscounted,
+                    'seat' => $seats[$index] ?? 'N/A'
+                ];
+            }
+        } else {
+            // Fallback
+            $totalPrice = count($seats) * $basePrice;
+        }
+
+        return view('booking.payment', compact('data', 'schedule', 'totalPrice', 'seats', 'priceBreakdown'));
     }
 
     // Step 5: Process Booking (Save to DB)
     public function processBooking(Request $request)
     {
-        // 1. Generate a Secure Transaction Reference (Random string, no card info)
         $transactionId = 'TRX-' . strtoupper(uniqid()); 
-
-        // 2. Create the reservations
         $seatList = explode(',', $request->seats);
         
-        foreach ($seatList as $seat) {
+        // Loop through the seats and the passengers array simultaneously
+        // Note: The array keys for 'passengers' correspond to the index of seats
+        foreach ($seatList as $index => $seat) {
+            
+            // Get the specific passenger details for this seat index
+            $passenger = $request->passengers[$index];
+            $fullName = $passenger['first_name'] . ' ' . $passenger['surname'];
+            $discountId = $passenger['discount_id'] ?? null;
+
             \App\Models\Reservation::create([
                 'user_id' => auth()->id(),
                 'schedule_id' => $request->schedule_id,
                 'seat_number' => $seat,
                 'status' => 'confirmed',
-                'transaction_id' => $transactionId, // <--- Saving the Reference
-                'payment_method' => 'SecurePay / Credit Card', // <--- Saving the Method
+                'transaction_id' => $transactionId,
+                'payment_method' => 'SecurePay / Credit Card',
+                
+                // SAVE NEW FIELDS
+                'passenger_name' => $fullName,
+                'discount_id_number' => $discountId,
             ]);
         }
 
-        // 3. Redirect to Success
         return redirect()->route('booking.success', ['id' => $transactionId]);
     }
 
@@ -109,41 +157,44 @@ class BookingController extends Controller
     {
         return view('booking.success', compact('id'));
     }
-
+    
     public function myBookings()
     {
-        if (!auth()->check()) {
-            return redirect()->route('login');
-        }
-        
-        // 1. Fetch reservations, joining the schedules table to access departure_time
-        $reservations = Reservation::where('reservations.user_id', auth()->id())
-            ->join('schedules', 'reservations.schedule_id', '=', 'schedules.id')
-            // Select reservations.* to avoid selecting duplicate IDs from the join
-            ->select('reservations.*') 
+        $userId = auth()->id();
+        $now = \Carbon\Carbon::now();
+
+        // 1. Get UPCOMING Trips
+        // We use the 'Reservation' model instead of 'Booking'
+        $upcomingBookings = \App\Models\Reservation::where('user_id', $userId)
+            ->whereHas('schedule', function($q) use ($now) {
+                $q->where('departure_time', '>=', $now);
+            })
             ->with(['schedule.route', 'schedule.bus'])
-            
-            // 2. Order by the column from the joined table
-            ->orderBy('schedules.departure_time', 'desc') 
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('booking.my-bookings', compact('reservations'));
+        // 2. Get PAST Trips
+        $pastBookings = \App\Models\Reservation::where('user_id', $userId)
+            ->whereHas('schedule', function($q) use ($now) {
+                $q->where('departure_time', '<', $now);
+            })
+            ->with(['schedule.route', 'schedule.bus'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('booking.my-bookings', compact('upcomingBookings', 'pastBookings'));
     }
 
-    public function showReceipt(Reservation $reservation)
+    public function showReceipt($id)
     {
-        // 1. SECURITY CHECK: Ensure the reservation belongs to the logged-in user
-        if ($reservation->user_id !== auth()->id()) {
-            // Halt access if the user tries to view someone else's booking
-            abort(403, 'Unauthorized. This booking does not belong to your account.');
-        }
+        // 1. Fetch data using the ID
+        $reservation = \App\Models\Reservation::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->with(['schedule.route', 'schedule.bus'])
+            ->firstOrFail();
 
-        // 2. Eager load related data
-        $reservation->load(['user', 'schedule.route', 'schedule.bus']);
-
-        // 3. Reuse the existing detailed Admin view (admin.reservations.show) 
-        // to avoid duplicating the complex receipt template.
-        return view('booking.receipt', compact('reservation')); 
+        // 2. Pass it to the view as 'reservation' (NOT 'booking')
+        return view('booking.receipt', compact('reservation'));
     }
 
     public function cancelBooking(Request $request, $id)
