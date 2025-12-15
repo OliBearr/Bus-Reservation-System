@@ -47,13 +47,13 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'user', // Default role
-            'valid_id' => $validIdPath, // Save the path
+            'role' => 'user',
+            'valid_id' => $validIdPath,
         ]);
         //<==================================>
-        $user->forceFill([
-            'email_verified_at' => now(),
-        ])->save();
+        // $user->forceFill([
+        //     'email_verified_at' => now(),
+        // ])->save();
         //<==================================>
         event(new Registered($user)); //<= Original Code delete the code above if integrating API/Mailer
 

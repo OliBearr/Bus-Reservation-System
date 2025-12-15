@@ -60,7 +60,7 @@
                 {{-- Email --}}
                 <div class="mb-6">
                             <label class="block text-sm font-bold text-gray-700 mb-2">Email</label>
-                            <input type="email" name="email" value="{{ old('email') }}" required
+                            <input type="email" pattern="^[a-zA-Z0-9._%+-]+@(gmail|yahoo|hotmail|outlook|busph|email)\.com$" name="email" value="{{ old('email') }}" required
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#001233] focus:ring-[#001233] transition"
                                 placeholder="email@example.com">
                             @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror

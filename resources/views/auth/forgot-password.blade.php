@@ -41,7 +41,7 @@
             {{-- Email Address --}}
             <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus 
+                <input id="email" pattern="^[a-zA-Z0-9._%+-]+@(gmail|yahoo|hotmail|outlook|busph|email)\.com$" type="email" name="email" value="{{ old('email') }}" required autofocus 
                        class="w-full px-4 py-3.5 rounded-lg bg-white border border-gray-200 focus:border-[#001233] focus:ring-1 focus:ring-[#001233] outline-none transition font-medium text-gray-900" 
                        placeholder="email@example.com">
                 @error('email') <p class="text-red-500 text-xs mt-1 font-bold">{{ $message }}</p> @enderror

@@ -18,6 +18,11 @@ class Schedule extends Model
         'available',
     ];
 
+    protected $casts = [
+        'departure_time' => 'datetime',
+        'arrival_time'   => 'datetime',
+    ];
+    
     // Relationship: A Schedule belongs to one Bus
     public function bus()
     {

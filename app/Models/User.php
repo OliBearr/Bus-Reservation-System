@@ -48,27 +48,27 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-        ];
+        ];  
     }
-    public function sendEmailVerificationNotification()
-    {
-        // 1. Generate the secure verification link
-        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-            'verification.verify',
-            \Carbon\Carbon::now()->addMinutes(60),
-            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())]
-        );
+    // public function sendEmailVerificationNotification()
+    // {
+    //     // 1. Generate the secure verification link
+    //     $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    //         'verification.verify',
+    //         \Carbon\Carbon::now()->addMinutes(60),
+    //         ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())]
+    //     );
 
-        // 2. Send the email directly to Resend's API
-        \Illuminate\Support\Facades\Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('RESEND_KEY'),
-            'Content-Type' => 'application/json'
-        ])->post('https://api.resend.com/emails', [
-            'from' => 'onboarding@resend.dev', // You must use this until you verify a domain
-            'to' => $this->email,
-            'subject' => 'Verify Your Email Address',
-            'html' => '<p>Click the link below to verify your email address:</p>
-                       <a href="'.$url.'">'.$url.'</a>'
-        ]);
-    }
+    //     // // 2. Send the email directly to Resend's API
+    //     // \Illuminate\Support\Facades\Http::withHeaders([
+    //     //     'Authorization' => 'Bearer ' . env('RESEND_KEY'),
+    //     //     'Content-Type' => 'application/json'
+    //     // ])->post('https://api.resend.com/emails', [
+    //     //     'from' => 'onboarding@resend.dev', // You must use this until you verify a domain
+    //     //     'to' => $this->email,
+    //     //     'subject' => 'Verify Your Email Address',
+    //     //     'html' => '<p>Click the link below to verify your email address:</p>
+    //     //                <a href="'.$url.'">'.$url.'</a>'
+    //     // ]);
+    // }
 }

@@ -39,7 +39,7 @@
 
         <div>
             <label for="email" class="block text-lg text-[#001233] mb-2">Email:</label>
-            <input id="email" type="email" name="email" :value="old('email')" required
+            <input id="email" pattern="^[a-zA-Z0-9._%+-]+@(gmail|yahoo|hotmail|outlook|busph|email)\.com$" type="email" name="email" :value="old('email')" required
                 class="block w-full px-4 py-3 rounded-lg bg-[#F3F4F6] border border-transparent focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>

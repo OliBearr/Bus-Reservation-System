@@ -17,14 +17,21 @@
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h2 class="text-xl font-bold text-[#001233] mb-4">Contact Details</h2>
                             <p class="text-sm text-gray-500 mb-6">Your tickets will be sent to this email address.</p>
-                            
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Mobile Number*</label>
-                                    <input type="text" name="contact_phone" class="w-full rounded-lg border-gray-300 focus:ring-[#001233]" required>
+                                    <input type="text" id="mobile_number" placeholder="+63 9XX XXX XXXX" pattern="^\+639|09\d{9}$" onkeydown="return event.key !== 'e' && event.key !== 'E'"required name="contact_phone" class="w-full rounded-lg border-gray-300 focus:ring-[#001233]" required>
+                                    <script>
+                                        // Optional: Only allow digits, plus sign, and common keys (backspace, arrows, etc.)
+                                        document.getElementById('mobile_number').addEventListener('input', function(e) {
+                                            let input = e.target.value;
+                                            // Allows +, digits, and nothing else (removes letters in real-time)
+                                            e.target.value = input.replace(/[^0-9+]/g, ''); 
+                                        });
+                                    </script>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Email Address*</label>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2" pattern="^[a-zA-Z0-9._%+-]+@(gmail|yahoo|hotmail|outlook|busph|email)\.com$">Email Address*</label>
                                     <input type="email" name="contact_email" class="w-full rounded-lg border-gray-300 focus:ring-[#001233]" required>
                                 </div>
                             </div>

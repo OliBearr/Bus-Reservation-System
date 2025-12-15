@@ -52,9 +52,21 @@
                                     <div class="ml-3 flex items-center gap-3">
                                         <span class="font-bold text-gray-800">Credit / Debit Card</span>
                                         <div class="flex gap-1">
-                                            {{-- Generic Card Icons --}}
-                                            <div class="bg-gray-200 h-5 w-8 rounded"></div>
-                                            <div class="bg-gray-200 h-5 w-8 rounded"></div>
+                                            {{-- Visa --}}
+                                            <div class="h-6 w-10">
+                                                <svg class="h-full w-full" viewBox="0 0 48 32" fill="none">
+                                                    <rect width="48" height="32" rx="2" fill="#1A1F71"/>
+                                                    <path d="M19.7 7.7L18 25H15.2L17.2 7.7H19.7ZM28.6 7.7C27.9 7.7 26.6 8 26 9.4L22.2 25H19.2L24.8 7.7H28.6ZM34.5 10.9C34.4 10.6 33.7 9.9 32.3 9.9C30.6 9.9 29.3 10.8 29.3 12.6C29.3 14 30.5 14.7 31.4 15.1C32.4 15.6 32.7 15.9 32.7 16.4C32.7 17.2 31.7 17.5 30.9 17.5C29.6 17.5 28.8 17.1 28.3 16.9L27.8 19.3C28.4 19.6 29.6 20 31 20C34.6 20 35.6 18.2 35.6 16.2C35.6 14.4 34.3 13.7 33.2 13.2C32.1 12.6 31.9 12.3 31.9 11.8C31.9 11.2 32.6 10.9 33.3 10.9C33.9 10.9 34.9 11 35.7 11.4L36.3 8.9C35.8 8.7 35.1 8.5 34.5 8.5V10.9ZM42.6 7.7L40.2 19.4L39.3 15C38.9 13.2 38.8 12.4 38.3 10.7L37.2 7.7H34.3L37.7 25H40.7L45.8 7.7H42.6Z" fill="white"/>
+                                                </svg>
+                                            </div>
+                                            {{-- Mastercard --}}
+                                            <div class="h-6 w-10">
+                                                <svg class="h-full w-full" viewBox="0 0 48 32" fill="none">
+                                                    <rect width="48" height="32" rx="2" fill="#252525"/>
+                                                    <circle cx="18" cy="16" r="9" fill="#EB001B"/>
+                                                    <circle cx="30" cy="16" r="9" fill="#F79E1B" fill-opacity="0.9"/>
+                                                </svg>
+                                            </div>
                                         </div>
                                     </div>
                                 </label>
@@ -64,21 +76,55 @@
                                     <div class="grid grid-cols-1 gap-4">
                                         <div>
                                             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Card Number</label>
-                                            <input type="text" placeholder="0000 0000 0000 0000" class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
+                                            <input type="text" id="card_number" 
+                                            name="card_number" 
+                                            :required="method === 'card'" 
+                                            placeholder="0000 0000 0000 0000" 
+                                            maxlength="19" 
+                                            pattern="\d{4} \d{4} \d{4} \d{4}"
+                                            oninput="formatCardNumber(this)"
+                                            class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
                                         </div>
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Expiration</label>
-                                                <input type="text" placeholder="MM / YY" class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
+                                                <input type="text"
+                                                id="expiration_date" 
+                                                name="expiration_date" 
+                                                :required="method === 'card'" 
+                                                placeholder="MM/YY" 
+                                                maxlength="5" 
+                                                pattern="(0[1-9]|1[0-2])\/\d{2}"
+                                                title="Enter a valid expiration date (MM/YY)"
+                                                oninput="formatExpiryDate(this)"
+                                                class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-bold text-gray-700 uppercase mb-1">CVC / CVV</label>
-                                                <input type="text" placeholder="123" class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
+                                                <input type="text"
+                                                id="cvv" 
+                                                name="cvv" 
+                                                :required="method === 'card'" 
+                                                placeholder="123" 
+                                                maxlength="3" 
+                                                pattern="\d{3}"
+                                                title="Enter the 3-digit security code"
+                                                oninput="formatCVV(this)"
+                                                class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
                                             </div>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Cardholder Name</label>
-                                            <input type="text" placeholder="JUAN DELA CRUZ" class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
+                                            <input type="text"
+                                            id="card_holder_name" 
+                                            name="card_holder_name" 
+                                            :required="method === 'card'" 
+                                            placeholder="JUAN DELA CRUZ" 
+                                            pattern="^[A-Z\s]+$"
+                                            title="Name must be in ALL CAPS and contain letters only."
+                                            style="text-transform: uppercase;" 
+                                            oninput="formatName(this)"
+                                            class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
                                         </div>
                                     </div>
                                 </div>
@@ -99,7 +145,12 @@
                                     <p class="text-sm text-gray-600 mb-3">You will be redirected to GCash to complete your payment securely.</p>
                                     <div>
                                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">GCash Mobile Number</label>
-                                        <input type="text" placeholder="0917 123 4567" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                                        <input type="text" id="mobile_number" 
+                                        :required="method === 'gcash'" 
+                                        onkeydown="return event.key !== 'e' && event.key !== 'E'"
+                                        placeholder="+63 9XX XXX XXXX"
+                                        pattern="^\+639|09\d{9}$" 
+                                        class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
                                     </div>
                                 </div>
                             </div>
@@ -119,11 +170,15 @@
                                     <p class="text-sm text-gray-600 mb-3">Scan QR code or login to Maya to pay.</p>
                                     <div>
                                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Maya Account Number</label>
-                                        <input type="text" placeholder="0918 123 4567" class="w-full rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500">
+                                        <input type="text" id="mobile_number_maya" 
+                                        :required="method === 'maya'" 
+                                        onkeydown="return event.key !== 'e' && event.key !== 'E'"
+                                        placeholder="+63 9XX XXX XXXX"
+                                        pattern="^\+639|09\d{9}$" 
+                                        class="w-full rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500">
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
 
@@ -202,13 +257,68 @@
 {{-- Remove this part when integrating a real payment gateway --}}
 <script>
     document.getElementById('paymentForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button');
-        btn.disabled = true;
-        btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing Payment...`;
-        btn.classList.add('bg-gray-800', 'cursor-not-allowed');
-        setTimeout(() => {
-            this.submit();
-        }, 2000);
+        // NOTE: We do NOT use e.preventDefault() here immediately if using standard form submission,
+        // but if you want the 'Processing...' UI, we do this:
+        const btn = this.querySelector('button[type="submit"]');
+        
+        // Only run this if the form is actually valid
+        if (this.checkValidity()) {
+            // e.preventDefault(); // Uncomment if you are submitting via AJAX. Since this is a standard POST, we just show the spinner and let it submit.
+            
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing Payment...`;
+            btn.classList.add('bg-gray-800', 'cursor-not-allowed');
+            
+            // Allow the form to submit naturally
+        }
     });
+</script>
+
+{{-- Input Validation and Formatting Scripts --}}
+<script>
+    // GCash Input Restrictor
+    document.getElementById('mobile_number').addEventListener('input', function(e) {
+        let input = e.target.value;
+        e.target.value = input.replace(/[^0-9+]/g, ''); 
+    });
+
+    // Maya Input Restrictor
+    document.getElementById('mobile_number_maya').addEventListener('input', function(e) {
+        let input = e.target.value;
+        e.target.value = input.replace(/[^0-9+]/g, ''); 
+    });
+
+    // 1. Format Card Number (XXXX XXXX XXXX XXXX)
+    function formatCardNumber(input) {
+        let value = input.value.replace(/\D/g, '');
+        let formattedValue = '';
+        for (let i = 0; i < value.length; i++) {
+            if (i > 0 && i % 4 === 0) {
+                formattedValue += ' ';
+            }
+            formattedValue += value[i];
+        }
+        input.value = formattedValue;
+    }
+
+    // 2. Format Expiration Date (MM/YY)
+    function formatExpiryDate(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.length >= 2) {
+            value = value.substring(0, 2) + '/' + value.substring(2, 4);
+        }
+        input.value = value;
+    }
+
+    // 3. Format CVV (Numbers Only)
+    function formatCVV(input) {
+        input.value = input.value.replace(/\D/g, '');
+    }
+
+    // 4. Format Name (ALL CAPS)
+    function formatName(input) {
+        let value = input.value.toUpperCase();
+        value = value.replace(/[^A-Z\s]/g, '');
+        input.value = value;
+    }
 </script>

@@ -171,9 +171,16 @@
 
             {{-- CANCELLATION / ACTIONS --}}
             @php
-                $canCancel = \Carbon\Carbon::parse($reservation->schedule->departure_time)->isFuture() && $reservation->cancellation_status === 'none';
+                $departureDate = \Carbon\Carbon::parse($reservation->schedule->departure_time);
+    
+                // FIX: Allow cancellation if status is NULL (empty) OR 'none'
+                $hasNoCancellation = is_null($reservation->cancellation_status) || $reservation->cancellation_status === 'none';
+                
+                // Only allow if trip is in future AND no active cancellation
+                $canCancel = $departureDate->isFuture() && $hasNoCancellation;
+
                 $isPending = $reservation->cancellation_status === 'pending';
-                $isRejected = $reservation->cancellation_status === 'rejected';
+                $isRejected = $reservation->cancellation_status === 'rejected'
             @endphp
 
             <div class="print:hidden mt-8 p-6 bg-white rounded-xl shadow-lg border border-gray-100">

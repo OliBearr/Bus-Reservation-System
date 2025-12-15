@@ -116,12 +116,21 @@
         <div class="space-y-4 max-w-7xl mx-auto">
             @forelse($schedules as $schedule)
                 @php
-                    $seatsTaken = $schedule->reservations_count ?? 0;
+                    // FIX: Filter out cancelled bookings from the "Taken" count
+                    // We look at all reservations, but REJECT (ignore) the ones that are 'approved' (cancelled)
+                    $activeReservations = $schedule->reservations->reject(function($reservation) {
+                        return $reservation->cancellation_status === 'approved';
+                    });
+
+                    // Now calculate based on ACTIVE reservations only
+                    $seatsTaken = $activeReservations->count();
                     $capacity = $schedule->bus->capacity ?? 0;
                     $seatsLeft = $capacity - $seatsTaken;
                     $isFull = $seatsLeft <= 0;
                     $isPast = \Carbon\Carbon::parse($schedule->departure_time)->isPast();
-                    $seatsTakenArray = $schedule->reservations->pluck('seat_number')->toArray();
+                    
+                    // Get the specific seat numbers that are truly taken
+                    $seatsTakenArray = $activeReservations->pluck('seat_number')->toArray();
                 @endphp
 
             <div x-data="{ 

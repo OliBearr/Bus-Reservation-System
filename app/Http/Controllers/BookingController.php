@@ -4,78 +4,76 @@ namespace App\Http\Controllers;
 
 use App\Models\Schedule;
 use Illuminate\Http\Request;
-use App\Models\Reservation;
+use App\Models\Reservation; // Main model used for bookings
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
-use App\Models\Booking;
-
+// use App\Models\Booking; // Unused if we are sticking to Reservation model
 
 class BookingController extends Controller
 {
-    
-    // Show the Seat Selection Page
+    // Step 1: Show the Seat Selection Page
     public function selectSeats($schedule_id)
     {
-        // 1. Find the Schedule
-        $schedule = Schedule::with(['bus', 'route', 'reservations'])->findOrFail($schedule_id);
+        // FIX: Filter the reservations relation.
+        // We only want to retrieve "Active" or "Pending" reservations.
+        // "Approved" cancellations are ignored, so the seat appears FREE.
+        $schedule = Schedule::with(['bus', 'route', 'reservations' => function($query) {
+            $query->where(function($q) {
+                $q->where('cancellation_status', '!=', 'approved') // If approved, ignore it (seat free)
+                  ->orWhereNull('cancellation_status');            // If null, it's active (seat taken)
+            });
+        }])->findOrFail($schedule_id);
 
-        // 2. Get the IDs of seats that are already taken
+        // Pluck only the seat numbers found by the filter above
         $takenSeats = $schedule->reservations->pluck('seat_number')->toArray();
 
-        // 3. Return the view
         return view('booking.seats', compact('schedule', 'takenSeats'));
     }
 
+    // Step 2: Show Details Form
     public function showReservationDetails(Request $request)
     {
-        // 1. Validate incoming data
         $request->validate([
             'schedule_id' => 'required|exists:schedules,id',
-            'seats' => 'required|string', // "1,2,3"
+            'seats' => 'required|string',
         ]);
 
-        // 2. Fetch Schedule Data
         $schedule = Schedule::with(['bus', 'route'])->findOrFail($request->schedule_id);
         
-        // 3. Parse Seats
         $selectedSeats = explode(',', $request->seats);
         $totalPrice = count($selectedSeats) * $schedule->route->price;
 
-        // 4. Return View
         return view('booking.reservation', compact('schedule', 'selectedSeats', 'totalPrice'));
     }
 
     // Step 3: Show Confirmation Page
     public function showConfirmation(Request $request)
     {
-        // 1. Validate inputs (Updated for Arrays)
         $validated = $request->validate([
             'schedule_id' => 'required|exists:schedules,id',
             'seats' => 'required|string',
             'contact_phone' => 'required|string',
             'contact_email' => 'required|email',
-            // Validate the array of passengers
             'passengers' => 'required|array',
             'passengers.*.first_name' => 'required|string',
             'passengers.*.surname' => 'required|string',
             'passengers.*.discount_id' => 'nullable|string',
         ]);
 
-        // 2. Fetch Data
         $schedule = Schedule::with(['bus', 'route'])->findOrFail($request->schedule_id);
         $selectedSeats = explode(',', $request->seats);
         $totalPrice = count($selectedSeats) * $schedule->route->price;
-        
-        // 3. Pass data to View
+
         return view('booking.confirm', compact(
             'schedule', 
             'selectedSeats', 
             'totalPrice', 
-            'validated' // Contains passengers and contact info
+            'validated'
         ));
     }
+
     // Step 4: Show Payment Page
     public function showPayment(Request $request)
     {
@@ -84,8 +82,6 @@ class BookingController extends Controller
         $schedule = Schedule::with('route')->findOrFail($request->schedule_id);
         $seats = explode(',', $request->seats);
         $basePrice = $schedule->route->price;
-
-        // --- CALCULATE BREAKDOWN ---
         $priceBreakdown = [];
         $totalPrice = 0;
 
@@ -126,8 +122,6 @@ class BookingController extends Controller
         $transactionId = 'TRX-' . strtoupper(uniqid()); 
         $seatList = explode(',', $request->seats);
         
-        // Loop through the seats and the passengers array simultaneously
-        // Note: The array keys for 'passengers' correspond to the index of seats
         foreach ($seatList as $index => $seat) {
             
             // Get the specific passenger details for this seat index
@@ -142,10 +136,9 @@ class BookingController extends Controller
                 'status' => 'confirmed',
                 'transaction_id' => $transactionId,
                 'payment_method' => 'SecurePay / Credit Card',
-                
-                // SAVE NEW FIELDS
                 'passenger_name' => $fullName,
                 'discount_id_number' => $discountId,
+                'cancellation_status' => null
             ]);
         }
 
@@ -158,13 +151,13 @@ class BookingController extends Controller
         return view('booking.success', compact('id'));
     }
     
+    // User My Bookings Page
     public function myBookings()
     {
         $userId = auth()->id();
         $now = \Carbon\Carbon::now();
 
         // 1. Get UPCOMING Trips
-        // We use the 'Reservation' model instead of 'Booking'
         $upcomingBookings = \App\Models\Reservation::where('user_id', $userId)
             ->whereHas('schedule', function($q) use ($now) {
                 $q->where('departure_time', '>=', $now);
@@ -187,43 +180,43 @@ class BookingController extends Controller
 
     public function showReceipt($id)
     {
-        // 1. Fetch data using the ID
         $reservation = \App\Models\Reservation::where('id', $id)
             ->where('user_id', auth()->id())
             ->with(['schedule.route', 'schedule.bus'])
             ->firstOrFail();
 
-        // 2. Pass it to the view as 'reservation' (NOT 'booking')
         return view('booking.receipt', compact('reservation'));
     }
 
+    // ACTION: User Requests Cancellation
     public function cancelBooking(Request $request, $id)
     {
-        // 1. Get the Reservation ID safely
-        $reservationId = ($id instanceof \App\Models\Reservation) ? $id->id : $id;
+        // 1. Find the Reservation
+        $reservation = \App\Models\Reservation::findOrFail($id);
 
-        // 2. Validate the Reason
-        $request->validate([
-            'cancellation_reason' => ['required', 'string', 'min:5'],
-        ]);
-
-        // 3. Find the Booking
-        $reservation = \App\Models\Reservation::findOrFail($reservationId);
-
-        // 4. Security Check (Ensure user owns this booking)
+        // 2. Security: Owner check
         if ($reservation->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized action.');
+            abort(403, 'Unauthorized');
         }
 
-        // 5. Update the Database
-        // Since you fixed $fillable in Reservation.php, we can use the clean update() method
+        // 3. Mark as PENDING cancellation
+        // The record stays, and the seat is STILL TAKEN until admin approves.
         $reservation->update([
             'cancellation_status' => 'pending',
             'cancellation_reason' => $request->cancellation_reason,
         ]);
 
-        // 6. Redirect with Success Message
-        return redirect()->route('user.bookings.index')
-            ->with('success', 'Cancellation request submitted successfully.');
+        return redirect()->back()->with('success', 'Cancellation requested. Waiting for admin approval.');
+    }
+
+    // ACTION: Admin Approves Cancellation (Releases Seat)
+    public function approveCancellation($id)
+    {
+        $reservation = \App\Models\Reservation::findOrFail($id);
+        $reservation->update([
+            'cancellation_status' => 'approved' 
+        ]);
+
+        return redirect()->back()->with('success', 'Booking cancelled and seat released.');
     }
 }
