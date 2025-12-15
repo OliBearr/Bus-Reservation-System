@@ -175,7 +175,7 @@
                                 </button>
                                 
                                 <div class="mt-4 text-center">
-                                    <a href="{{ url()->previous() }}" class="text-sm text-gray-500 hover:text-[#001233] underline">Go Back & Edit</a>
+                                    <a href="{{ route('booking.seats', $schedule->id) }}" class="text-sm text-gray-500 hover:text-[#001233] underline">Go Back & Edit</a>
                                 </div>
                             </div>
                         </div>

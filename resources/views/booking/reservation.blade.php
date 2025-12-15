@@ -66,6 +66,7 @@
                                     </div>
                                     <div class="mt-3">
                                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Discount ID (Optional)</label>
+                                        <p class="block text-xs text-red-500 mb-1">Note: Follow this format to apply disounts 0000-0000</p>
                                         <input type="text" name="passengers[{{ $i }}][discount_id]" class="w-full rounded-lg border-gray-300 text-sm" placeholder="Senior Citizen / PWD ID">
                                     </div>
                                 </div>
