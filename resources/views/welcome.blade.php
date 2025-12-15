@@ -7,56 +7,126 @@
     @php
         $minDate = \Carbon\Carbon::now()->subDay()->format('Y-m-d');
         $currentDate = $searchDate ?? date('Y-m-d');
+        $reqTripType = request('trip_type', 'one_way');
+        $reqReturnDate = request('return_date');
     @endphp
 
     {{-- HERO SECTION --}}
-    <div class="relative w-full h-[450px] flex-shrink-0">
+    <div class="relative w-full h-[500px] flex-shrink-0">
         <img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2069&auto=format&fit=crop" class="w-full h-full object-cover">
         <div class="absolute inset-0 bg-[#001233]/40"></div>
         <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-8">
-                @auth <span class="text-yellow-400">Welcome, {{ Auth::user()->name }}!</span><br>Where to next?
-                @else <span class="text-yellow-400">Hassle-Free.</span> Book Anytime. Anywhere.<br>with BusPH @endauth
-            </h1>
-            <form id="searchForm" action="{{ route('home') }}" method="GET" class="bg-white p-2 rounded-lg shadow-2xl flex flex-col md:flex-row items-center gap-2 w-full max-w-5xl">
+            
+            {{-- DYNAMIC HEADER LOGIC --}}
+            @if(request('is_return'))
+                <div class="bg-green-500 text-white px-6 py-2 rounded-full font-bold mb-6 animate-bounce shadow-lg border-2 border-white/20 backdrop-blur-sm">
+                    ✓ Outbound Trip Selected!
+                </div>
+                <h1 class="text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-8">
+                    Now Select Your <span class="text-yellow-400">Return Bus</span>
+                </h1>
+            @else
+                <h1 class="text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-8">
+                    @auth <span class="text-yellow-400">Welcome, {{ Auth::user()->name }}!</span><br>Where to next?
+                    @else <span class="text-yellow-400">Hassle-Free.</span> Book Anytime. Anywhere.<br>with BusPH @endauth
+                </h1>
+            @endif
+            
+            {{-- SEARCH FORM --}}
+            <form x-data="{ tripType: '{{ $reqTripType }}' }" id="searchForm" action="{{ route('home') }}" method="GET" 
+                  class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col gap-6 w-full max-w-6xl">
+                
                 <input type="hidden" name="hide_full" id="input_hide_full" value="{{ request('hide_full') }}">
                 <input type="hidden" name="bus_type" id="input_bus_type" value="{{ request('bus_type') }}">
                 
-                {{-- ORIGIN --}}
-                <div class="flex items-center bg-gray-50 rounded px-4 py-3 flex-1 w-full border border-gray-200">
-                    <div class="mr-3 text-[#001233]"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
-                    <div class="text-left w-full">
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide">From Terminal</label>
-                        <select name="origin" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold focus:ring-0 cursor-pointer outline-none">
-                            <option value="">Select Origin</option>
-                            @foreach($origins as $origin) <option value="{{ $origin }}" {{ request('origin') == $origin ? 'selected' : '' }}>{{ $origin }}</option> @endforeach
-                        </select>
+                {{-- ✅ CRITICAL FIX: Pass 'is_return' so the next search knows we are still booking the return leg --}}
+                @if(request('is_return'))
+                    <input type="hidden" name="is_return" value="1">
+                @endif
+                
+                {{-- ✅ CRITICAL FIX: Hide Trip Type Toggle if we are selecting the return leg --}}
+                @if(!request('is_return'))
+                    <div class="flex gap-8 border-b border-gray-100 pb-4">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <div class="relative flex items-center">
+                                <input type="radio" name="trip_type" value="one_way" x-model="tripType" class="peer h-5 w-5 cursor-pointer appearance-none rounded-full border-2 border-gray-300 transition-all checked:border-[#001233] checked:bg-[#001233]">
+                                <div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 peer-checked:opacity-100">
+                                    <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </div>
+                            </div>
+                            <span class="font-bold text-gray-600 group-hover:text-[#001233] transition">One Way</span>
+                        </label>
+
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <div class="relative flex items-center">
+                                <input type="radio" name="trip_type" value="round_trip" x-model="tripType" class="peer h-5 w-5 cursor-pointer appearance-none rounded-full border-2 border-gray-300 transition-all checked:border-[#001233] checked:bg-[#001233]">
+                                <div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 peer-checked:opacity-100">
+                                    <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </div>
+                            </div>
+                            <span class="font-bold text-gray-600 group-hover:text-[#001233] transition">Round Trip</span>
+                        </label>
                     </div>
-                </div>
-                {{-- ARROW --}}
-                <div class="hidden md:flex bg-gray-100 rounded-full p-2 text-[#001233]">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                </div>
-                {{-- DESTINATION --}}
-                <div class="flex items-center bg-gray-50 rounded px-4 py-3 flex-1 w-full border border-gray-200">
-                    <div class="mr-3 text-[#001233]"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
-                    <div class="text-left w-full">
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide">To Terminal</label>
-                        <select name="destination" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold focus:ring-0 cursor-pointer outline-none">
-                            <option value="">Select Destination</option>
-                            @foreach($destinations as $destination) <option value="{{ $destination }}" {{ request('destination') == $destination ? 'selected' : '' }}>{{ $destination }}</option> @endforeach
-                        </select>
+                @endif
+                
+                {{-- INPUTS ROW --}}
+                <div class="flex flex-col md:flex-row items-center gap-2 w-full">
+                    
+                    {{-- ORIGIN --}}
+                    <div class="flex items-center bg-gray-50 rounded-xl px-4 py-3 flex-1 w-full border border-gray-200 hover:border-[#001233] transition-colors group">
+                        <div class="mr-3 text-gray-400 group-hover:text-[#001233] transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
+                        <div class="text-left w-full">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">From</label>
+                            <select name="origin" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold text-lg focus:ring-0 cursor-pointer outline-none placeholder-gray-300">
+                                <option value="">Select Origin</option>
+                                @foreach($origins as $origin) <option value="{{ $origin }}" {{ request('origin') == $origin ? 'selected' : '' }}>{{ $origin }}</option> @endforeach
+                            </select>
+                        </div>
                     </div>
-                </div>
-                {{-- DATE --}}
-                <div class="flex items-center bg-gray-50 rounded px-4 py-3 flex-1 w-full border border-gray-200">
-                    <div class="mr-3 text-[#001233]"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
-                    <div class="text-left w-full">
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide">Trip Date</label>
-                        <input type="date" name="date" id="input_date" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold focus:ring-0 outline-none" value="{{ $currentDate }}" min="{{ $minDate }}">
+
+                    {{-- SWAP ICON --}}
+                    <div class="hidden md:flex bg-gray-100 rounded-full p-2 text-gray-400 hover:text-[#001233] hover:bg-gray-200 transition cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                     </div>
+
+                    {{-- DESTINATION --}}
+                    <div class="flex items-center bg-gray-50 rounded-xl px-4 py-3 flex-1 w-full border border-gray-200 hover:border-[#001233] transition-colors group">
+                        <div class="mr-3 text-gray-400 group-hover:text-[#001233] transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
+                        <div class="text-left w-full">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">To</label>
+                            <select name="destination" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold text-lg focus:ring-0 cursor-pointer outline-none">
+                                <option value="">Select Destination</option>
+                                @foreach($destinations as $destination) <option value="{{ $destination }}" {{ request('destination') == $destination ? 'selected' : '' }}>{{ $destination }}</option> @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- DEPARTURE DATE --}}
+                    <div class="flex items-center bg-gray-50 rounded-xl px-4 py-3 flex-1 w-full border border-gray-200 hover:border-[#001233] transition-colors group">
+                        <div class="mr-3 text-gray-400 group-hover:text-[#001233] transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
+                        <div class="text-left w-full">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Departure</label>
+                            <input type="date" name="date" id="input_date" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold text-lg focus:ring-0 outline-none" value="{{ $currentDate }}" min="{{ $minDate }}">
+                        </div>
+                    </div>
+
+                    {{-- ✅ HIDE RETURN DATE FIELD ON SEARCH (Because we search one leg at a time) --}}
+                    {{-- Only show if NOT is_return AND tripType is round_trip --}}
+                    <div x-show="tripType === 'round_trip' && '{{ request('is_return') }}' !== '1'" 
+                         x-transition 
+                         class="flex items-center bg-gray-50 rounded-xl px-4 py-3 flex-1 w-full border border-gray-200 hover:border-[#001233] transition-colors group">
+                        <div class="mr-3 text-gray-400 group-hover:text-[#001233] transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
+                        <div class="text-left w-full">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Return</label>
+                            <input type="date" name="return_date" class="w-full bg-transparent border-none p-0 text-[#001233] font-bold text-lg focus:ring-0 outline-none" value="{{ $reqReturnDate }}" min="{{ $minDate }}">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="bg-[#001233] hover:bg-blue-900 text-white font-bold py-4 px-8 rounded-xl h-full w-full md:w-auto shadow-lg hover:shadow-xl transition-all tracking-wide text-lg flex items-center justify-center gap-2">
+                        Find
+                        <svg class="w-5 h-5 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
                 </div>
-                <button type="submit" class="bg-[#001233] hover:bg-blue-900 text-white font-bold py-4 px-8 rounded h-full w-full md:w-auto shadow-lg transition tracking-wide">Find Available</button>
             </form>
         </div>
     </div>
@@ -92,7 +162,7 @@
             </div>
         </div>
 
-        {{-- DATE CAROUSEL (Unchanged) --}}
+        {{-- DATE CAROUSEL --}}
         <div class="flex items-center justify-between gap-4 mb-10 max-w-7xl mx-auto">
             @if($currentDate <= $minDate)
                 <button disabled class="bg-gray-100 p-3 rounded-xl text-gray-300 cursor-not-allowed"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
@@ -116,48 +186,96 @@
         <div class="space-y-4 max-w-7xl mx-auto">
             @forelse($schedules as $schedule)
                 @php
-                    // FIX: Filter out cancelled bookings from the "Taken" count
-                    // We look at all reservations, but REJECT (ignore) the ones that are 'approved' (cancelled)
+                    // 1. Existing Logic
                     $activeReservations = $schedule->reservations->reject(function($reservation) {
                         return $reservation->cancellation_status === 'approved';
                     });
-
-                    // Now calculate based on ACTIVE reservations only
                     $seatsTaken = $activeReservations->count();
-                    $capacity = $schedule->bus->capacity ?? 0;
+                    $capacity = $schedule->bus->capacity ?? 45;
                     $seatsLeft = $capacity - $seatsTaken;
                     $isFull = $seatsLeft <= 0;
                     $isPast = \Carbon\Carbon::parse($schedule->departure_time)->isPast();
-                    
-                    // Get the specific seat numbers that are truly taken
                     $seatsTakenArray = $activeReservations->pluck('seat_number')->toArray();
+
+                    // 2. ✅ NEW: Time & Duration Logic
+                    $start = \Carbon\Carbon::parse($schedule->departure_time);
+                    // Fallback to +6 hours if arrival_time is missing in DB
+                    $end = $schedule->arrival_time ? \Carbon\Carbon::parse($schedule->arrival_time) : $start->copy()->addHours(6);
+                    $duration = $start->diff($end)->format('%hh %im');
+                    $isNextDay = $end->isNextDay($start);
                 @endphp
 
+            {{-- X-DATA (Unchanged logic, just ensure it wraps the card) --}}
             <div x-data="{ 
                     expanded: false, 
-                    showMap: false, // ✅ NEW: Map Visibility Toggle
+                    showMap: false,
                     selected: [], 
+                    adults: 0,
+                    children: 0,
+                    tripType: '{{ $reqTripType }}',
                     price: {{ $schedule->route->price }},
                     mapInitialized: false,
+                    
                     toggleSeat(seat) {
-                        if (this.selected.includes(seat)) this.selected = this.selected.filter(s => s !== seat);
-                        else this.selected.push(seat);
+                        if (this.selected.includes(seat)) {
+                            this.selected = this.selected.filter(s => s !== seat);
+                            if (this.children > 0) this.children--;
+                            else if (this.adults > 0) this.adults--;
+                        } else {
+                            this.selected.push(seat);
+                            this.adults++;
+                        }
                     },
-                    get total() { return (this.selected.length * this.price).toLocaleString('en-US', {minimumFractionDigits: 2}); },
+                    
+                    adjustPassengers(type, change) {
+                        const totalSeats = this.selected.length;
+                        if (totalSeats === 0) return; 
+
+                        if (type === 'adult') {
+                            const newAdults = this.adults + change;
+                            if (newAdults < 0) return;
+                            if (change > 0) {
+                                if (newAdults + this.children <= totalSeats) this.adults = newAdults;
+                                else if (this.children > 0) { this.children--; this.adults = newAdults; }
+                            } else { this.adults = newAdults; }
+                        } else if (type === 'child') {
+                            const newChildren = this.children + change;
+                            if (newChildren < 0) return;
+                            if (change > 0) {
+                                if (this.adults + newChildren <= totalSeats) this.children = newChildren;
+                                else if (this.adults > 0) { this.adults--; this.children = newChildren; }
+                            } else { this.children = newChildren; }
+                        }
+                    },
+
+                    get totalPassengers() { return this.adults + this.children; },
+                    get total() { 
+                        const adultTotal = this.adults * this.price;
+                        const childTotal = this.children * (this.price * 0.8);
+                        return (adultTotal + childTotal).toLocaleString('en-US', {minimumFractionDigits: 2});
+                    },
                     initMap() {
                         if (this.mapInitialized) return;
                         this.mapInitialized = true;
                         setTimeout(() => {
-                            const originCoords = [14.6178, 121.0572]; 
-                            const destCoords = [13.1391, 123.7438];
+                            const locations = {
+                                'Cubao': [14.6195, 121.0511], 'Pasay': [14.5378, 121.0014], 'Baguio': [16.4023, 120.5960],
+                                'Legazpi': [13.1391, 123.7438], 'Naga': [13.6218, 123.1948], 'Batangas': [13.7565, 121.0583], 'Manila': [14.5995, 120.9842]
+                            };
+                            const originName = '{{ $schedule->route->origin }}';
+                            const destName = '{{ $schedule->route->destination }}';
+                            const originCoords = locations[originName] || [14.5995, 120.9842];
+                            const destCoords = locations[destName] || [14.5995, 120.9842];
+
                             var map = L.map('map-{{ $schedule->id }}', { center: originCoords, zoom: 6, zoomControl: false, attributionControl: false });
                             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
                             var busIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', iconSize: [24, 24], iconAnchor: [12, 24] });
                             var pinIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png', iconSize: [24, 24], iconAnchor: [12, 24] });
-                            L.marker(originCoords, {icon: busIcon}).addTo(map);
-                            L.marker(destCoords, {icon: pinIcon}).addTo(map);
+
+                            L.marker(originCoords, {icon: busIcon}).addTo(map).bindPopup(originName);
+                            L.marker(destCoords, {icon: pinIcon}).addTo(map).bindPopup(destName);
                             var routeLine = L.polyline([originCoords, destCoords], { color: '#001233', weight: 3, opacity: 0.8, dashArray: '5, 5' }).addTo(map);
-                            map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
+                            map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
                             map.invalidateSize();
                         }, 200);
                     }
@@ -166,22 +284,52 @@
                 
                 <div class="p-6">
                     <div class="flex flex-col md:flex-row justify-between items-center border-b border-gray-100 pb-6 mb-4">
-                        <div class="flex items-center gap-12 w-full md:w-auto">
-                            <div class="text-center md:text-left"><h3 class="text-3xl font-black text-[#001233]">{{ \Carbon\Carbon::parse($schedule->departure_time)->format('h:i A') }}</h3></div>
-                            <div class="flex items-center gap-8 flex-1">
-                                <span class="text-xl font-bold text-[#001233]">{{ $schedule->route->origin }}</span>
-                                <div class="flex-1"><svg class="w-6 h-6 text-[#001233] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
-                                <span class="text-xl font-bold text-[#001233]">{{ $schedule->route->destination }}</span>
+                        
+                        {{-- ✅ UPDATED: TIME & ROUTE SECTION --}}
+                        <div class="flex items-center gap-8 w-full md:w-auto flex-1">
+                            {{-- Departure --}}
+                            <div class="text-center min-w-[80px]">
+                                <h3 class="text-2xl font-black text-[#001233]">{{ $start->format('H:i') }}</h3>
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ $schedule->route->origin }}</p>
+                            </div>
+
+                            {{-- Duration Visual --}}
+                            <div class="flex flex-col items-center flex-1 px-4">
+                                <span class="text-[10px] font-bold text-gray-400 mb-1 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {{ $duration }}
+                                </span>
+                                <div class="w-full h-0.5 bg-gray-200 relative flex items-center">
+                                    <div class="w-full border-t border-dashed border-gray-400"></div>
+                                    <div class="absolute right-0 -top-1">
+                                        <svg class="w-3 h-3 text-gray-400 transform rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            {{-- Arrival --}}
+                            <div class="text-center min-w-[80px]">
+                                <h3 class="text-2xl font-black text-gray-600">{{ $end->format('H:i') }}</h3>
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                                    {{ $schedule->route->destination }}
+                                    @if($isNextDay) <span class="text-red-400 text-[9px] ml-1">(+1 Day)</span> @endif
+                                </p>
                             </div>
                         </div>
-                        <div class="mt-4 md:mt-0"><span class="text-2xl font-bold text-[#001233]">PHP {{ number_format($schedule->route->price, 2) }}</span></div>
+
+                        {{-- Price --}}
+                        <div class="mt-4 md:mt-0 md:pl-12 md:border-l md:border-gray-100 text-center md:text-right min-w-[120px]">
+                            <p class="text-xs font-bold text-gray-400 uppercase mb-1">Per Person</p>
+                            <span class="text-2xl font-black text-[#001233]">PHP {{ number_format($schedule->route->price, 2) }}</span>
+                        </div>
                     </div>
 
+                    {{-- BOTTOM SECTION (Bus Type, Code, Availability, Buttons) --}}
                     <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div class="flex gap-12 text-sm text-gray-500 w-full md:w-auto">
-                            <div><p class="font-bold text-[#001233]">Bus Type</p><p>{{ $schedule->bus->type }}</p></div>
-                            <div><p class="font-bold text-[#001233]">Trip Type</p><p>One Way</p></div>
-                            <div><p class="font-bold text-[#001233]">Code</p><p>BC{{ $schedule->id }}</p></div>
+                        <div class="flex gap-8 text-sm text-gray-500 w-full md:w-auto">
+                            <div><p class="font-bold text-[#001233] text-xs uppercase">Bus Type</p><p class="text-xs">{{ $schedule->bus->type }}</p></div>
+                            <div><p class="font-bold text-[#001233] text-xs uppercase">Code</p><p class="text-xs">BC{{ $schedule->id }}</p></div>
                         </div>
 
                         <div class="flex items-center gap-4 w-full md:w-auto justify-end">
@@ -191,10 +339,9 @@
                                 <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">FULLY BOOKED</span>
                             @else
                                 <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-white text-green-700 border border-gray-300">
-                                    <span class="w-2.5 h-2.5 mr-2 bg-green-500 rounded-full"></span>{{ $seatsLeft }} left
+                                    <span class="w-2.5 h-2.5 mr-2 bg-green-500 rounded-full animate-pulse"></span>{{ $seatsLeft }} left
                                 </span>
 
-                                {{-- ✅ VIEW MAP BUTTON --}}
                                 <button @click="expanded = true; showMap = !showMap; if(showMap) initMap()" 
                                         :class="showMap ? 'text-[#001233]' : 'text-gray-400'"
                                         class="hover:text-[#001233] font-bold text-xs flex items-center gap-1 transition mr-2">
@@ -204,8 +351,8 @@
 
                                 <button @click="expanded = !expanded" 
                                         :class="expanded ? 'bg-gray-200 text-[#001233]' : 'bg-[#001233] text-white hover:bg-blue-900'"
-                                        class="font-bold py-2 px-6 rounded-full shadow transition flex items-center gap-2">
-                                    <span x-text="expanded ? 'Hide Seats' : 'Show Seats'"></span>
+                                        class="font-bold py-2 px-6 rounded-full shadow transition flex items-center gap-2 text-sm">
+                                    <span x-text="expanded ? 'Hide Seats' : 'Select Seats'"></span>
                                     <svg x-show="!expanded" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     <svg x-show="expanded" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                                 </button>
@@ -214,11 +361,11 @@
                     </div>
                 </div>
 
-                {{-- EXPANDED SECTION --}}
+                {{-- EXPANDED SECTION (Contains Seats, Map, and Form) --}}
                 <div x-show="expanded" x-collapse class="bg-white border-t border-gray-100 px-6 py-8">
                     <div class="flex flex-col lg:flex-row gap-6">
                         
-                        {{-- 1. SEATS GRID (Width Dynamic) --}}
+                        {{-- 1. SEATS GRID --}}
                         <div :class="showMap ? 'lg:w-1/3' : 'lg:w-1/2'" class="w-full border-r border-gray-100 pr-4 transition-all duration-300">
                             <h4 class="font-bold text-[#001233] mb-4 text-sm">Select Seat(s)</h4>
                             <div class="bg-[#F3F4F6] p-4 rounded-xl border border-gray-200 max-w-sm mx-auto">
@@ -241,24 +388,82 @@
                             </div>
                         </div>
 
-                        {{-- 2. MAP (Toggleable) --}}
+                        {{-- 2. MAP --}}
                         <div x-show="showMap" x-transition 
                              class="w-full lg:w-1/3 bg-white p-1 rounded-xl shadow-sm border border-gray-200 relative group h-64 lg:h-auto">
                             <div id="map-{{ $schedule->id }}" style="height: 100%; width: 100%; border-radius: 0.5rem; z-index: 1;"></div>
                             <div class="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded shadow text-[10px] font-bold text-gray-500 uppercase z-[400]">Route Map</div>
                         </div>
 
-                        {{-- 3. SUMMARY (Width Dynamic) --}}
+                        {{-- 3. SUMMARY & FORM --}}
                         <div :class="showMap ? 'lg:w-1/3' : 'lg:w-1/2'" class="w-full pl-4 flex flex-col justify-between py-2 transition-all duration-300">
                             <div class="space-y-4 mb-4">
+                                
+                                {{-- ✅ FIX 1: HIDE TOGGLE ON RETURN SELECTION --}}
+                                @if(!request('is_return'))
+                                    <div class="bg-gray-100 p-1 rounded-lg flex mb-4">
+                                        <button type="button" @click="tripType = 'one_way'" 
+                                                :class="tripType === 'one_way' ? 'bg-white text-[#001233] shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                                                class="flex-1 py-1.5 rounded-md text-xs font-bold transition-all">
+                                            One Way
+                                        </button>
+                                        <button type="button" @click="tripType = 'round_trip'" 
+                                                :class="tripType === 'round_trip' ? 'bg-white text-[#001233] shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                                                class="flex-1 py-1.5 rounded-md text-xs font-bold transition-all">
+                                            Round Trip
+                                        </button>
+                                    </div>
+                                @else
+                                    {{-- Visual confirmation that this is the return leg --}}
+                                    <div class="bg-blue-50 text-blue-800 text-xs font-bold px-3 py-2 rounded-lg mb-4 text-center border border-blue-100">
+                                        Select Return Trip
+                                    </div>
+                                @endif
+
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-500 text-sm font-medium">Pick-up Time</span>
-                                    <span class="font-black text-[#001233] text-lg">{{ \Carbon\Carbon::parse($schedule->departure_time)->format('h:i A') }}</span>
+                                    <span class="font-black text-[#001233] text-lg">{{ $start->format('h:i A') }}</span>
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-gray-400 font-bold uppercase mb-1 block tracking-wider">Route</label>
-                                    <div class="w-full px-3 py-2 rounded bg-gray-50 text-[#001233] font-bold text-sm border border-gray-100">
-                                        {{ $schedule->route->origin }} &rarr; {{ $schedule->route->destination }}
+                                    <div class="w-full px-3 py-2 rounded bg-gray-50 text-[#001233] font-bold text-sm border border-gray-100 flex justify-between">
+                                        <span>{{ $schedule->route->origin }}</span>
+                                        <span>&rarr;</span>
+                                        <span>{{ $schedule->route->destination }}</span>
+                                    </div>
+                                </div>
+
+                                {{-- Passenger Count with Buttons --}}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-bold text-[#001233]">Passenger Count</label>
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex-1">
+                                            <label class="block text-xs text-gray-500 uppercase tracking-wide mb-1">Adults</label>
+                                            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-1 bg-gray-50">
+                                                <button type="button" @click="adjustPassengers('adult', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:bg-gray-100 hover:text-[#001233] font-bold">-</button>
+                                                <span x-text="adults" class="font-bold text-[#001233]"></span>
+                                                <button type="button" @click="adjustPassengers('adult', 1)" class="w-8 h-8 flex items-center justify-center bg-[#001233] rounded shadow-sm text-white hover:bg-blue-900 font-bold">+</button>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="block text-xs text-gray-500 uppercase tracking-wide mb-1">Kids (20% Off)</label>
+                                            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-1 bg-gray-50">
+                                                <button type="button" @click="adjustPassengers('child', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:bg-gray-100 hover:text-[#001233] font-bold">-</button>
+                                                <span x-text="children" class="font-bold text-[#001233]"></span>
+                                                <button type="button" @click="adjustPassengers('child', 1)" class="w-8 h-8 flex items-center justify-center bg-[#001233] rounded shadow-sm text-white hover:bg-blue-900 font-bold">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="pt-1">
+                                        <p x-show="selected.length > 0 && selected.length !== totalPassengers" class="text-red-500 text-xs font-bold">
+                                            <span x-show="totalPassengers < selected.length">Add passengers to match seats.</span>
+                                            <span x-show="totalPassengers > selected.length">Too many passengers for selected seats.</span>
+                                        </p>
+                                        <p x-show="children > 0 && adults === 0" class="text-red-500 text-xs font-bold flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                            Children cannot travel alone.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -279,10 +484,21 @@
                                     @csrf
                                     <input type="hidden" name="schedule_id" value="{{ $schedule->id }}">
                                     <input type="hidden" name="seats" :value="selected.join(',')">
+                                    
+                                    {{-- ✅ FIX 2: FORCE 'round_trip' IF BOOKING RETURN LEG --}}
+                                    @if(request('is_return'))
+                                        <input type="hidden" name="trip_type" value="round_trip">
+                                    @else
+                                        <input type="hidden" name="trip_type" :value="tripType">
+                                    @endif
+                                    
+                                    <input type="hidden" name="passengers_adult" :value="adults">
+                                    <input type="hidden" name="passengers_child" :value="children">
+                                    <input type="hidden" name="return_date" value="{{ $reqReturnDate }}">
 
                                     <button type="submit"
-                                            :disabled="selected.length === 0"
-                                            :class="selected.length > 0 ? 'bg-[#001233] hover:bg-blue-900 text-white shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
+                                            :disabled="selected.length === 0 || selected.length !== totalPassengers || (children > 0 && adults === 0)"
+                                            :class="(selected.length > 0 && selected.length === totalPassengers && !(children > 0 && adults === 0)) ? 'bg-[#001233] hover:bg-blue-900 text-white shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
                                             class="w-full py-3 font-bold rounded-lg transition uppercase text-xs tracking-widest flex items-center justify-center gap-2">
                                         <span class="btn-text">Reserve Now</span>
                                     </button>
@@ -294,9 +510,9 @@
             </div>
             @empty
                 <div class="flex flex-col items-center justify-center py-20 text-center">
-                    <img src="{{ asset('images/no-trips.png') }}" alt="No Available Trips" class="h-24 w-auto mb-4 opacity-40 grayscale">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="No Trips" class="h-24 w-auto mb-4 opacity-30 grayscale">
                     <h3 class="text-xl font-medium text-gray-500">No Available Trips</h3>
-                    <p class="text-gray-400 mt-2 text-sm">We couldn't find any buses for this date.<br>Try changing your filters.</p>
+                    <p class="text-gray-400 mt-2 text-sm">We couldn't find any buses for this date.<br>Try changing your filters or date.</p>
                     <a href="{{ route('home') }}" class="mt-6 px-6 py-2 bg-gray-200 text-gray-700 font-bold rounded-full hover:bg-gray-300 transition text-sm">Clear All Filters</a>
                 </div>
             @endforelse

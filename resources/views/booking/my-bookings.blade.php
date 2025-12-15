@@ -6,20 +6,20 @@
                 <h2 class="text-2xl font-bold text-[#001233]">My Bookings</h2>
             </div>
 
-            {{-- LOGIC: Sort bookings into Categories --}}
+            {{-- LOGIC: Sort bookings into Categories (Kept your logic) --}}
             @php
-                // 1. Cancelled Trips (From both Upcoming and Past)
+                // 1. Cancelled Trips
                 $cancelledTrips = $upcomingBookings->where('cancellation_status', 'approved')
                     ->merge($pastBookings->where('cancellation_status', 'approved'));
 
-                // 2. Active Upcoming (Future dates, NOT cancelled)
+                // 2. Active Upcoming
                 $activeUpcoming = $upcomingBookings->where('cancellation_status', '!=', 'approved');
 
-                // 3. Completed History (Past dates, NOT cancelled)
+                // 3. Completed History
                 $activePast = $pastBookings->where('cancellation_status', '!=', 'approved');
             @endphp
 
-            {{-- NAVIGATION TABS --}}
+            {{-- NAVIGATION TABS (Kept your design) --}}
             <div class="flex space-x-1 bg-gray-200 p-1 rounded-xl mb-8 w-fit">
                 <button onclick="switchTab('upcoming')" id="btn-upcoming" class="px-6 py-2 rounded-lg text-sm font-bold transition-all bg-white text-[#001233] shadow-sm">
                     Upcoming
@@ -50,9 +50,9 @@
                         @foreach($activeUpcoming as $booking)
                             @php
                                 $basePrice = $booking->schedule->route->price;
-                                $finalPrice = $basePrice;
-                                $hasDiscount = !empty($booking->discount_id_number);
-                                if($hasDiscount) { $finalPrice = $basePrice * 0.80; }
+                                // ✅ NEW LOGIC: Calculate price based on Child Type
+                                $isChild = $booking->passenger_type === 'child';
+                                $finalPrice = $isChild ? $basePrice * 0.80 : $basePrice;
                             @endphp
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
                                 <div class="p-6">
@@ -66,16 +66,24 @@
                                             </p>
                                         </div>
                                         <div class="text-right">
-                                            @if($booking->status === 'pending')
-                                                <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Pending Review</span>
-                                            @elseif($booking->cancellation_status === 'pending')
-                                                <span class="bg-orange-100 text-orange-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Cancellation Pending</span>
-                                            @else
-                                                <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Scheduled</span>
-                                            @endif
+                                            {{-- Status Badges --}}
+                                            <div class="flex justify-end gap-2 mb-2">
+                                                @if($booking->trip_type === 'round_trip')
+                                                    <span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded border border-blue-100 uppercase tracking-wide">Round Trip</span>
+                                                @endif
+                                                
+                                                @if($booking->status === 'pending')
+                                                    <span class="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Pending</span>
+                                                @elseif($booking->cancellation_status === 'pending')
+                                                    <span class="bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Cancel Pending</span>
+                                                @else
+                                                    <span class="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Confirmed</span>
+                                                @endif
+                                            </div>
                                             
-                                            <div class="mt-2">
-                                                @if($hasDiscount)
+                                            {{-- Price Display --}}
+                                            <div>
+                                                @if($isChild)
                                                     <p class="text-xs text-gray-400 line-through">₱ {{ number_format($basePrice, 2) }}</p>
                                                     <p class="font-bold text-xl text-green-600">₱ {{ number_format($finalPrice, 2) }}</p>
                                                 @else
@@ -84,13 +92,31 @@
                                             </div>
                                         </div>
                                     </div>
+
                                     <div class="border-t border-dashed border-gray-200 my-4"></div>
+                                    
+                                    {{-- Passenger Details Grid --}}
                                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                        <div><p class="text-xs text-gray-400 font-bold uppercase">Booking ID</p><p class="font-medium text-gray-900">#{{ $booking->id }}</p></div>
-                                        <div><p class="text-xs text-gray-400 font-bold uppercase">Seat</p><span class="bg-[#001233] text-white px-2 py-0.5 rounded text-xs font-bold">{{ $booking->seat_number }}</span></div>
-                                        <div><p class="text-xs text-gray-400 font-bold uppercase">Bus Type</p><p class="font-medium text-gray-900">{{ $booking->schedule->bus->type }}</p></div>
-                                        <div><p class="text-xs text-gray-400 font-bold uppercase">Bus No.</p><p class="font-medium text-gray-900">{{ $booking->schedule->bus->bus_number }}</p></div>
+                                        <div>
+                                            <p class="text-xs text-gray-400 font-bold uppercase">Passenger</p>
+                                            <p class="font-medium text-gray-900">{{ $booking->passenger_name }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-gray-400 font-bold uppercase">Type</p>
+                                            <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $isChild ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                                {{ $booking->passenger_type }}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-gray-400 font-bold uppercase">Seat</p>
+                                            <span class="bg-[#001233] text-white px-2 py-0.5 rounded text-xs font-bold">{{ $booking->seat_number }}</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-gray-400 font-bold uppercase">Bus No.</p>
+                                            <p class="font-medium text-gray-900">{{ $booking->schedule->bus->bus_number }}</p>
+                                        </div>
                                     </div>
+
                                     <div class="mt-6 text-right">
                                         <a href="{{ route('user.bookings.receipt', $booking->id) }}" class="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center justify-end gap-1">
                                             View Receipt & Details <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
@@ -119,16 +145,21 @@
                         @foreach($activePast as $booking)
                             @php
                                 $basePrice = $booking->schedule->route->price;
-                                $finalPrice = !empty($booking->discount_id_number) ? $basePrice * 0.80 : $basePrice;
+                                $isChild = $booking->passenger_type === 'child';
+                                $finalPrice = $isChild ? $basePrice * 0.80 : $basePrice;
                             @endphp
                             <div class="bg-gray-100 rounded-lg border border-gray-200 p-6 flex flex-col md:flex-row justify-between items-center grayscale hover:grayscale-0 transition">
                                 <div class="mb-4 md:mb-0">
                                     <div class="flex items-center gap-3">
                                         <span class="bg-gray-300 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Completed</span>
+                                        @if($booking->trip_type === 'round_trip')
+                                            <span class="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Round Trip</span>
+                                        @endif
                                         <h4 class="font-bold text-gray-700">{{ $booking->schedule->route->origin }} → {{ $booking->schedule->route->destination }}</h4>
                                     </div>
                                     <p class="text-sm text-gray-500 mt-1">
-                                        {{ \Carbon\Carbon::parse($booking->schedule->departure_time)->format('M d, Y') }} • Seat {{ $booking->seat_number }}
+                                        {{ \Carbon\Carbon::parse($booking->schedule->departure_time)->format('M d, Y') }} • 
+                                        {{ $booking->passenger_name }} ({{ ucfirst($booking->passenger_type) }})
                                     </p>
                                 </div>
                                 <div class="text-right">
@@ -152,7 +183,8 @@
                         @foreach($cancelledTrips as $booking)
                             @php
                                 $basePrice = $booking->schedule->route->price;
-                                $finalPrice = !empty($booking->discount_id_number) ? $basePrice * 0.80 : $basePrice;
+                                $isChild = $booking->passenger_type === 'child';
+                                $finalPrice = $isChild ? $basePrice * 0.80 : $basePrice;
                             @endphp
                             <div class="bg-red-50 rounded-xl shadow-sm border border-red-100 overflow-hidden relative">
                                 <div class="p-6 opacity-75">
@@ -173,8 +205,8 @@
                                     <div class="border-t border-red-100 my-4"></div>
                                     <div class="flex justify-between items-center">
                                         <div>
-                                            <p class="text-xs text-gray-500 font-bold uppercase">Booking ID</p>
-                                            <p class="font-medium text-gray-900">#{{ $booking->id }}</p>
+                                            <p class="text-xs text-gray-500 font-bold uppercase">Passenger</p>
+                                            <p class="font-medium text-gray-900">{{ $booking->passenger_name }}</p>
                                         </div>
                                         <a href="{{ route('user.bookings.receipt', $booking->id) }}" class="text-sm text-gray-500 hover:text-red-700 underline">View Details</a>
                                     </div>
@@ -192,8 +224,7 @@
         </div>
     </div>
     
-
-    {{-- JAVASCRIPT FOR TABS --}}
+    {{-- JAVASCRIPT FOR TABS (Unchanged) --}}
     <script>
         function switchTab(tabName) {
             // 1. Hide all tab contents
@@ -202,13 +233,13 @@
             // 2. Show selected tab content
             document.getElementById('tab-' + tabName).classList.remove('hidden');
 
-            // 3. Reset all buttons to gray (inactive state)
+            // 3. Reset all buttons
             document.querySelectorAll('button[id^="btn-"]').forEach(btn => {
                 btn.classList.remove('bg-white', 'text-[#001233]', 'shadow-sm');
                 btn.classList.add('text-gray-500');
             });
 
-            // 4. Highlight selected button (active state)
+            // 4. Highlight selected button
             const activeBtn = document.getElementById('btn-' + tabName);
             activeBtn.classList.remove('text-gray-500');
             activeBtn.classList.add('bg-white', 'text-[#001233]', 'shadow-sm');

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\ContactController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Admin\ScheduleTemplateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,15 +54,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | Booking Flow
     |--------------------------------------------------------------------------
     */
+    // 1. Select Seats (Step 1)
+    Route::get('/booking/{schedule}/seats', [BookingController::class, 'selectSeats'])->name('booking.seats');
+
+    // 2. Review Details (Step 2)
     Route::post('/booking/details', [BookingController::class, 'showReservationDetails'])->name('booking.details');
+
+    // 3. Confirm Booking (Step 3)
     Route::post('/booking/confirm', [BookingController::class, 'showConfirmation'])->name('booking.confirm');
+
+    // 4. Payment Page (Step 4)
     Route::post('/booking/payment', [BookingController::class, 'showPayment'])->name('booking.payment');
+
+    // 5. Process Payment & Save (Step 5)
     Route::post('/booking/process', [BookingController::class, 'processBooking'])->name('booking.process');
+
+    // 6. Success Receipt
     Route::get('/booking/success/{id}', [BookingController::class, 'showSuccess'])->name('booking.success');
 
-    // Booking Process
-    Route::get('/booking/{schedule}/seats', [BookingController::class, 'selectSeats'])->name('booking.seats');
-    
     // User My Bookings
     Route::get('/my-bookings', [BookingController::class, 'myBookings'])->name('user.bookings.index');
     Route::get('/my-bookings/{reservation}/receipt', [BookingController::class, 'showReceipt'])->name('user.bookings.receipt');
@@ -78,6 +88,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 */
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+
+    // Automation & Bulk Actions
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('templates', ScheduleTemplateController::class);
+        Route::post('/templates/generate', [ScheduleTemplateController::class, 'generate'])->name('templates.generate');
+        // Delete All Empty Schedules
+        Route::delete('/schedules/delete-all', [ScheduleController::class, 'deleteAll'])->name('schedules.deleteAll');
+    });
 
     // Bus Management
     Route::resource('/admin/buses', BusController::class)->names([

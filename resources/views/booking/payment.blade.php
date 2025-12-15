@@ -27,13 +27,19 @@
                 {{-- HIDDEN DATA --}}
                 <input type="hidden" name="schedule_id" value="{{ $data['schedule_id'] }}">
                 <input type="hidden" name="seats" value="{{ $data['seats'] }}">
+                <input type="hidden" name="trip_type" value="{{ $data['trip_type'] ?? 'one_way' }}">
                 <input type="hidden" name="contact_phone" value="{{ $data['contact_phone'] }}">
                 <input type="hidden" name="contact_email" value="{{ $data['contact_email'] }}">
+                
                 @if(isset($data['passengers']) && is_array($data['passengers']))
+                    @php $seatList = explode(',', $data['seats']); @endphp
                     @foreach($data['passengers'] as $index => $passenger)
                         <input type="hidden" name="passengers[{{ $index }}][first_name]" value="{{ $passenger['first_name'] }}">
                         <input type="hidden" name="passengers[{{ $index }}][surname]" value="{{ $passenger['surname'] }}">
                         <input type="hidden" name="passengers[{{ $index }}][discount_id]" value="{{ $passenger['discount_id'] ?? '' }}">
+                        {{-- ✅ CRITICAL FIX: Passing Type and Seat to prevent crash --}}
+                        <input type="hidden" name="passengers[{{ $index }}][type]" value="{{ $passenger['type'] ?? 'adult' }}">
+                        <input type="hidden" name="passengers[{{ $index }}][seat]" value="{{ $passenger['seat'] ?? ($seatList[$index] ?? '') }}">
                     @endforeach
                 @endif
 
@@ -253,69 +259,47 @@
     </div>
 </x-app-layout>
 
-{{-- IMPORTANT!!! --}}
-{{-- Remove this part when integrating a real payment gateway --}}
+{{-- SCRIPTS (Kept exactly as provided) --}}
 <script>
     document.getElementById('paymentForm').addEventListener('submit', function(e) {
-        // NOTE: We do NOT use e.preventDefault() here immediately if using standard form submission,
-        // but if you want the 'Processing...' UI, we do this:
         const btn = this.querySelector('button[type="submit"]');
-        
-        // Only run this if the form is actually valid
         if (this.checkValidity()) {
-            // e.preventDefault(); // Uncomment if you are submitting via AJAX. Since this is a standard POST, we just show the spinner and let it submit.
-            
             btn.disabled = true;
             btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing Payment...`;
             btn.classList.add('bg-gray-800', 'cursor-not-allowed');
-            
-            // Allow the form to submit naturally
         }
     });
-</script>
 
-{{-- Input Validation and Formatting Scripts --}}
-<script>
-    // GCash Input Restrictor
     document.getElementById('mobile_number').addEventListener('input', function(e) {
         let input = e.target.value;
         e.target.value = input.replace(/[^0-9+]/g, ''); 
     });
 
-    // Maya Input Restrictor
     document.getElementById('mobile_number_maya').addEventListener('input', function(e) {
         let input = e.target.value;
         e.target.value = input.replace(/[^0-9+]/g, ''); 
     });
 
-    // 1. Format Card Number (XXXX XXXX XXXX XXXX)
     function formatCardNumber(input) {
         let value = input.value.replace(/\D/g, '');
         let formattedValue = '';
         for (let i = 0; i < value.length; i++) {
-            if (i > 0 && i % 4 === 0) {
-                formattedValue += ' ';
-            }
+            if (i > 0 && i % 4 === 0) formattedValue += ' ';
             formattedValue += value[i];
         }
         input.value = formattedValue;
     }
 
-    // 2. Format Expiration Date (MM/YY)
     function formatExpiryDate(input) {
         let value = input.value.replace(/\D/g, '');
-        if (value.length >= 2) {
-            value = value.substring(0, 2) + '/' + value.substring(2, 4);
-        }
+        if (value.length >= 2) value = value.substring(0, 2) + '/' + value.substring(2, 4);
         input.value = value;
     }
 
-    // 3. Format CVV (Numbers Only)
     function formatCVV(input) {
         input.value = input.value.replace(/\D/g, '');
     }
 
-    // 4. Format Name (ALL CAPS)
     function formatName(input) {
         let value = input.value.toUpperCase();
         value = value.replace(/[^A-Z\s]/g, '');

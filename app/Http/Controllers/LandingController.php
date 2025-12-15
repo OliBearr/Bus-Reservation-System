@@ -88,10 +88,19 @@ class LandingController extends Controller
             });
         }
 
+        // ✅ NEW: Check if this is the "Return Leg" of a round trip
+        $isReturn = $request->has('is_return');
+
         // Pass properly formatted date string back to view
         $formattedSearchDate = $searchDate->format('Y-m-d');
 
-        return view($viewName, compact('origins', 'destinations', 'schedules', 'dates', 'busTypes'))
-                ->with('searchDate', $formattedSearchDate);
+        return view($viewName, compact(
+            'origins', 
+            'destinations', 
+            'schedules', 
+            'dates', 
+            'busTypes',
+            'isReturn' // <--- Added this to the view data
+        ))->with('searchDate', $formattedSearchDate);
     }
 }

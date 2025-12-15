@@ -141,4 +141,20 @@ class ScheduleController extends Controller
 
         return view('admin.schedules.edit', compact('schedule', 'buses', 'routes'));
     }
+
+    public function deleteAll()
+    {
+        // 1. Count how many we are about to delete (for the success message)
+        $count = \App\Models\Schedule::doesntHave('reservations')->count();
+
+        if ($count === 0) {
+            return back()->with('error', 'No empty schedules found to delete.');
+        }
+
+        // 2. Delete only schedules that have NO reservations
+        // This protects real customer data while clearing your test data.
+        \App\Models\Schedule::doesntHave('reservations')->delete();
+
+        return back()->with('success', "Successfully cleared {$count} empty schedules.");
+    }
 }
