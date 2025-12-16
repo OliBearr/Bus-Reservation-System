@@ -51,6 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
             "<p>Click the link below to verify your email:</p>
              <a href='{$url}'>Verify Email</a>"
         );
+        return;
     }
     public function sendPasswordResetNotification($token)
     {
