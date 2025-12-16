@@ -34,11 +34,19 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    /**
-     * Send the email verification notification (QUEUED)
-     */
     public function sendEmailVerificationNotification()
     {
-        $this->notify(new VerifyEmail);
+        $url = $this->verificationUrl();
+
+        BrevoMailService::send(
+            $this->email,
+            'Verify your email – BusPH',
+            "<p>Click the link below to verify your email:</p>
+             <a href='{$url}'>Verify Email</a>"
+        );
+    }
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\BrevoResetPassword($token));
     }
 }
