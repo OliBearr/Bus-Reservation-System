@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ContactQuery;
+use App\Services\BrevoMailService;
 
 class ContactController extends Controller
 {
@@ -15,29 +14,21 @@ class ContactController extends Controller
 
     public function send(Request $request)
     {
-        // 1. Validate form
         $request->validate([
             'name'    => 'required|string|max:255',
             'email'   => 'required|email',
+            'subject' => 'required|string|max:255',
             'message' => 'required|string|min:10',
         ]);
 
-        // 2. Prepare data
-        $data = [
-            'name'    => $request->name,
-            'email'   => $request->email,
-            'subject' => 'BusPH Inquiry',
-            'message' => $request->message,
-        ];
+        $subject = $request->subject;
+        $html = "<p><strong>From:</strong> {$request->name} ({$request->email})</p>
+                 <p><strong>Message:</strong><br>{$request->message}</p>";
 
-        // 3. QUEUED email (non-blocking)
-        Mail::to('busph.help@gmail.com')->queue(
-            new ContactQuery($data)
-        );
-
-        return back()->with(
-            'success',
-            'Thank you! Your message has been sent successfully.'
-        );
+        if (BrevoMailService::send('busph.help@gmail.com', $subject, $html)) {
+            return back()->with('success', 'Thank you! Your message has been sent successfully.');
+        } else {
+            return back()->with('error', 'Failed to send message. Please try again later.');
+        }
     }
 }

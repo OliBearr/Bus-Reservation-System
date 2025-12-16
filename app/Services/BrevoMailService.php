@@ -7,13 +7,16 @@ use Illuminate\Support\Facades\Log;
 
 class BrevoMailService
 {
+    /**
+     * Send email via Brevo SMTP API
+     */
     public static function send(string $to, string $subject, string $html): bool
     {
         try {
-            $response = Http::timeout(10)  // max 10 seconds
-                ->retry(2, 1000)          // retry twice, 1s apart
+            $response = Http::timeout(10)
+                ->retry(3, 1000)
                 ->withHeaders([
-                    'api-key' => config('services.brevo.key'),
+                    'api-key' => config('services.brevo.api_key'),
                     'Content-Type' => 'application/json',
                 ])
                 ->post('https://api.brevo.com/v3/smtp/email', [
@@ -29,9 +32,11 @@ class BrevoMailService
                 ]);
 
             if (! $response->successful()) {
-                Log::error('Brevo send failed', [
+                Log::error('Brevo email failed', [
                     'status' => $response->status(),
                     'body'   => $response->body(),
+                    'to'     => $to,
+                    'subject'=> $subject,
                 ]);
             }
 
@@ -39,6 +44,8 @@ class BrevoMailService
         } catch (\Throwable $e) {
             Log::error('Brevo exception', [
                 'message' => $e->getMessage(),
+                'to'      => $to,
+                'subject' => $subject,
             ]);
             return false;
         }
