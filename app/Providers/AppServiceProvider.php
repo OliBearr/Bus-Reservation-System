@@ -21,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(RouteRepositoryInterface::class, RouteRepository::class);
         $this->app->bind(\App\Interfaces\RouteRepositoryInterface::class, \App\Repositories\RouteRepository::class);
         $this->app->bind(ScheduleRepositoryInterface::class, ScheduleRepository::class);
+        $this->app->bind(HttpClientInterface::class, function () {
+            return HttpClient::create();
+        });
     }
 
     /**
