@@ -164,8 +164,28 @@
                             <div class="border-t pt-4">
                                 <div class="flex justify-between items-center mb-6">
                                     <span class="text-gray-600 font-bold">Total Amount</span>
-                                    {{-- The Total Price is usually passed from the controller as $totalPrice --}}
-                                    <span class="text-3xl font-black text-[#001233]">₱ {{ number_format($totalPrice, 2) }}</span>
+                                    
+                                    <div class="text-right">
+                                        {{-- Calculate the Original Total (Sum of all original prices) --}}
+                                        @php
+                                            $originalTotal = collect($breakdown)->sum('original_price');
+                                        @endphp
+
+                                        {{-- If savings exist, show the crossed-out original price --}}
+                                        @if($originalTotal > $totalPrice)
+                                            <span class="block text-sm text-gray-400 line-through font-medium">
+                                                ₱ {{ number_format($originalTotal, 2) }}
+                                            </span>
+                                            <span class="text-3xl font-black text-green-600">
+                                                ₱ {{ number_format($totalPrice, 2) }}
+                                            </span>
+                                        @else
+                                            {{-- No discounts: Standard Display --}}
+                                            <span class="text-3xl font-black text-[#001233]">
+                                                ₱ {{ number_format($totalPrice, 2) }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 {{-- SUBMIT BUTTON --}}

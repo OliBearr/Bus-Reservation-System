@@ -133,71 +133,91 @@ class BookingController extends Controller
 
     // Step 3: Show Confirmation Page
     public function showConfirmation(Request $request)
-    {
-        // 1. Validate
-        $validated = $request->validate([
-            'schedule_id'   => 'required|exists:schedules,id',
-            'seats'         => 'required|string',
-            'contact_phone' => 'required|string',
-            'contact_email' => 'required|email',
-            'trip_type'     => 'required|in:one_way,round_trip',
-            'return_date'   => 'nullable|date',
-            'passengers'    => 'required|array',
-            // ... add deep validation if needed ...
-        ]);
+{
+    // 1. Validate (Kept exactly as is)
+    $validated = $request->validate([
+        'schedule_id'   => 'required|exists:schedules,id',
+        'seats'         => 'required|string',
+        'contact_phone' => 'required|string',
+        'contact_email' => 'required|email',
+        'trip_type'     => 'required|in:one_way,round_trip',
+        'return_date'   => 'nullable|date',
+        'passengers'    => 'required|array',
+    ]);
 
-        $schedule = \App\Models\Schedule::with(['bus', 'route'])->findOrFail($request->schedule_id);
+    $schedule = \App\Models\Schedule::with(['bus', 'route'])->findOrFail($request->schedule_id);
+    
+    $totalPrice = 0;
+    $breakdown = [];
+    
+    // --- CALCULATION 1: CURRENT TRIP (Return or Single) ---
+    $basePrice = $schedule->route->price;
+    
+    foreach ($request->passengers as $p) {
+        // Logic: Apply 20% discount if Discount ID exists OR if type is 'child'
+        $hasDiscountId = !empty($p['discount_id']);
+        $isChild = ($p['type'] === 'child');
         
-        $totalPrice = 0;
-        $breakdown = [];
+        // Determine if discounted
+        $isDiscounted = $hasDiscountId || $isChild;
         
-        // --- CALCULATION 1: CURRENT TRIP (Return or Single) ---
-        $basePrice = $schedule->route->price;
-        foreach ($request->passengers as $p) {
-            $isChild = ($p['type'] === 'child');
-            $price = $isChild ? ($basePrice * 0.80) : $basePrice; 
-            $totalPrice += $price;
+        // Calculate Final Price (20% off = multiply by 0.80)
+        $price = $isDiscounted ? ($basePrice * 0.80) : $basePrice; 
+        
+        $totalPrice += $price;
 
-            $breakdown[] = [
-                'label' => 'Current Trip', //
-                'name' => $p['first_name'] . ' ' . $p['surname'],
-                'type' => ucfirst($p['type']),
-                'seat' => $p['seat'],
-                'price' => $price,
-                'discount_id' => $p['discount_id'] ?? null
-            ];
-        }
+        $breakdown[] = [
+            'label'          => 'Current Trip',
+            'name'           => $p['first_name'] . ' ' . $p['surname'],
+            'type'           => ucfirst($p['type']),
+            'seat'           => $p['seat'],
+            'price'          => $price,
+            'original_price' => $basePrice,   // <--- Added for View
+            'is_discounted'  => $isDiscounted, // <--- Added for View
+            'discount_id'    => $p['discount_id'] ?? null
+        ];
+    }
 
-        // --- CALCULATION 2: OUTBOUND TRIP (From Session) ---
-        if ($request->session()->has('outbound_trip')) {
-            $outbound = $request->session()->get('outbound_trip');
-            $outSchedule = \App\Models\Schedule::with('route')->find($outbound['schedule_id']);
+    // --- CALCULATION 2: OUTBOUND TRIP (From Session) ---
+    if ($request->session()->has('outbound_trip')) {
+        $outbound = $request->session()->get('outbound_trip');
+        $outSchedule = \App\Models\Schedule::with('route')->find($outbound['schedule_id']);
+        
+        if($outSchedule) {
             $outPrice = $outSchedule->route->price;
-            $outSeats = explode(',', $outbound['seats']); // Get seats from session
+            $outSeats = explode(',', $outbound['seats']); 
             
-            // We map the same passengers to the outbound seats
+            // Map passengers to outbound seats
             $passengerList = array_values($request->passengers); 
             
             foreach ($passengerList as $index => $p) {
                 if (isset($outSeats[$index])) {
+                    // Apply same discount logic to outbound trip
+                    $hasDiscountId = !empty($p['discount_id']);
                     $isChild = ($p['type'] === 'child');
-                    $price = $isChild ? ($outPrice * 0.80) : $outPrice; 
+                    $isDiscounted = $hasDiscountId || $isChild;
+
+                    $price = $isDiscounted ? ($outPrice * 0.80) : $outPrice; 
+                    
                     $totalPrice += $price;
 
                     $breakdown[] = [
-                        'label' => 'Outbound Trip',
-                        'name' => $p['first_name'] . ' ' . $p['surname'],
-                        'type' => ucfirst($p['type']),
-                        'seat' => $outSeats[$index], // Use Outbound Seat
-                        'price' => $price,
-                        'discount_id' => $p['discount_id'] ?? null
+                        'label'          => 'Outbound Trip',
+                        'name'           => $p['first_name'] . ' ' . $p['surname'],
+                        'type'           => ucfirst($p['type']),
+                        'seat'           => $outSeats[$index],
+                        'price'          => $price,
+                        'original_price' => $outPrice,     // <--- Added
+                        'is_discounted'  => $isDiscounted, // <--- Added
+                        'discount_id'    => $p['discount_id'] ?? null
                     ];
                 }
             }
         }
-
-        return view('booking.confirm', compact('schedule', 'validated', 'totalPrice', 'breakdown'));
     }
+
+    return view('booking.confirm', compact('schedule', 'validated', 'totalPrice', 'breakdown'));
+}
 
     // Step 4: Show Payment Page
     public function showPayment(Request $request)
