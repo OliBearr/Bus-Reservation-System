@@ -13,11 +13,17 @@
     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         
         {{-- 1. SEARCH BAR (Kept as is) --}}
-        <div class="relative w-full md:w-96">
-            <input type="text" placeholder="Search bus or route..." 
+        <form action="{{ route('admin.schedules.index') }}" method="GET" class="relative w-full md:w-96">
+            <input type="text" 
+                   name="search" 
+                   value="{{ request('search') }}" 
+                   placeholder="Search bus, origin, or destination..." 
                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-[#001233] focus:border-[#001233] transition text-sm">
-            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </div>
+            
+            <button type="submit" class="absolute left-3 top-2.5 text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </button>
+        </form>
 
 {{-- 2. ACTION BUTTONS --}}
         <div class="flex gap-3 flex-shrink-0" x-data="{ showDeleteModal: false }">

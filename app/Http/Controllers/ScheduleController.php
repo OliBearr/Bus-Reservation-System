@@ -24,13 +24,34 @@ class ScheduleController extends Controller
     /**
      * Display a listing of the schedules.
      */
-    public function index()
-    {
-        // 2. Use repository method for fetching data
-        $schedules = $this->scheduleRepository->getAllSchedules(); 
-        
-        return view('admin.schedules.index', compact('schedules'));
+    public function index(Request $request)
+{
+    // Start the query with relationships
+    $query = Schedule::with(['bus', 'route']);
+
+    // Check if the user searched for something
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where(function($q) use ($search) {
+            // Search by Bus Number
+            $q->whereHas('bus', function($busQuery) use ($search) {
+                $busQuery->where('bus_number', 'like', "%{$search}%")
+                         ->orWhere('plate_number', 'like', "%{$search}%");
+            })
+            // OR Search by Route Origin/Destination
+            ->orWhereHas('route', function($routeQuery) use ($search) {
+                $routeQuery->where('origin', 'like', "%{$search}%")
+                           ->orWhere('destination', 'like', "%{$search}%");
+            });
+        });
     }
+
+    // Get the results
+    $schedules = $query->latest()->get(); 
+
+    return view('admin.schedules.index', compact('schedules'));
+}
 
     /**
      * Show the form for creating a new schedule.
