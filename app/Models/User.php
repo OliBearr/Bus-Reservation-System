@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Notifications\VerifyEmail;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Carbon;
+use App\Services\BrevoMailService;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -26,13 +28,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
     public function sendEmailVerificationNotification()
     {
@@ -51,8 +50,8 @@ class User extends Authenticatable implements MustVerifyEmail
             "<p>Click the link below to verify your email:</p>
              <a href='{$url}'>Verify Email</a>"
         );
-        return;
     }
+
     public function sendPasswordResetNotification($token)
     {
         $this->notify(new \App\Notifications\BrevoResetPassword($token));
