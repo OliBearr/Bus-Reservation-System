@@ -34,29 +34,6 @@ Route::get('/privacy-policy', [GeneralController::class, 'privacy'])->name('priv
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
 
-/*
-|--------------------------------------------------------------------------
-| Email Verification Routes (Logged in BUT NOT Verified yet)
-|--------------------------------------------------------------------------
-*/
-Route::middleware('auth')->group(function () {
-    // 1. Show Notice
-    Route::get('/email/verify', function () {
-        return view('auth.verify-email');
-    })->name('verification.notice');
-
-    // 2. Handle Verification Link Click
-    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-        $request->fulfill();
-        return redirect()->route('dashboard');
-    })->middleware('signed')->name('verification.verify');
-
-    // 3. Resend Link
-    Route::post('/email/verification-notification', function (Request $request) {
-        $request->user()->sendEmailVerificationNotification();
-        return back()->with('status', 'verification-link-sent');
-    })->middleware('throttle:6,1')->name('verification.send');
-});
 
 /*
 |--------------------------------------------------------------------------
