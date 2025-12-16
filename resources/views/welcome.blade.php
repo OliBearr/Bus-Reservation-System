@@ -20,7 +20,8 @@
             {{-- DYNAMIC HEADER LOGIC --}}
             @if(request('is_return'))
                 <div class="bg-green-500 text-white px-6 py-2 rounded-full font-bold mb-6 animate-bounce shadow-lg border-2 border-white/20 backdrop-blur-sm">
-                    ✓ Outbound Trip Selected!
+                    ✓ Outbound Trip Selected! <br>
+                    Now choose your return trip below.
                 </div>
                 <h1 class="text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-8">
                     Now Select Your <span class="text-yellow-400">Return Bus</span>

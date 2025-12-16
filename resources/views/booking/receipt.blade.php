@@ -59,10 +59,24 @@
                         <div class="text-center">
                             <div class="flex items-center justify-center gap-4 text-2xl font-black text-[#001233]">
                                 <span>{{ $reservation->schedule->route->origin }}</span>
-                                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                </svg>
                                 <span>{{ $reservation->schedule->route->destination }}</span>
                             </div>
-                            <p class="text-sm text-gray-500 font-medium mt-1">One-Way Trip</p>
+                            
+                            {{-- Dynamic Trip Label --}}
+                            <p class="text-sm text-gray-500 font-medium mt-1 uppercase tracking-wide">
+                                @if($reservation->trip_type === 'one_way')
+                                    One-Way Trip
+                                @elseif($reservation->trip_type === 'outbound')
+                                    Round Trip <span class="text-blue-600">→ Outbound</span>
+                                @elseif($reservation->trip_type === 'return')
+                                    Round Trip <span class="text-indigo-600">→ Return</span>
+                                @else
+                                    {{ ucwords(str_replace('_', ' ', $reservation->trip_type)) }}
+                                @endif
+                            </p>
                         </div>
 
                         {{-- DETAILS GRID --}}

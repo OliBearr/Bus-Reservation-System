@@ -308,11 +308,19 @@ class BookingController extends Controller
     }
 
     // Step 5: Process Booking (Save to DB)
+    // Step 5: Process Booking (Save to DB)
     public function processBooking(Request $request)
     {
-        $transactionId = 'TRX-' . strtoupper(uniqid()); 
+        $transactionId = 'BPH-' . strtoupper(uniqid()); 
         
-        // 1. SAVE CURRENT TRIP
+        // ---------------------------------------------------------
+        // 1. SAVE CURRENT TRIP (The one in the request)
+        // ---------------------------------------------------------
+        // Logic: If the user selected 'round_trip', the trip currently 
+        // in the $request is actually the RETURN leg (Leg 2).
+        // If it's 'one_way', it stays 'one_way'.
+        $currentTripType = ($request->trip_type === 'round_trip') ? 'return' : 'one_way';
+
         foreach ($request->passengers as $passenger) {
             \App\Models\Reservation::create([
                 'user_id' => auth()->id(),
@@ -323,12 +331,17 @@ class BookingController extends Controller
                 'payment_method' => 'SecurePay', 
                 'passenger_name' => $passenger['first_name'] . ' ' . $passenger['surname'],
                 'passenger_type' => $passenger['type'],
-                'trip_type'      => $request->trip_type,
+                
+                // ✅ CHANGED: Save 'return' or 'one_way' instead of generic 'round_trip'
+                'trip_type'      => $currentTripType, 
+                
                 'discount_id_number' => $passenger['discount_id'] ?? null,
             ]);
         }
 
+        // ---------------------------------------------------------
         // 2. SAVE OUTBOUND TRIP (If exists in session)
+        // ---------------------------------------------------------
         if ($request->session()->has('outbound_trip')) {
             $outbound = $request->session()->get('outbound_trip');
             $outSeats = explode(',', $outbound['seats']);
@@ -339,14 +352,17 @@ class BookingController extends Controller
                     \App\Models\Reservation::create([
                         'user_id' => auth()->id(),
                         'schedule_id' => $outbound['schedule_id'],
-                        'seat_number' => $outSeats[$index], // Map to outbound seat
+                        'seat_number' => $outSeats[$index],
                         'status' => 'confirmed',
-                        'transaction_id' => $transactionId, // Same TRX ID
+                        'transaction_id' => $transactionId,
                         'payment_method' => 'SecurePay',
                         'passenger_name' => $passenger['first_name'] . ' ' . $passenger['surname'],
                         'passenger_type' => $passenger['type'],
-                        'trip_type'      => 'round_trip',
-                        'round_trip_group_id' => 1, // Optional: You can link IDs here
+                        
+                        // ✅ CHANGED: Explicitly mark this as 'outbound'
+                        'trip_type'      => 'outbound',
+                        
+                        'round_trip_group_id' => 1, 
                         'discount_id_number' => $passenger['discount_id'] ?? null,
                     ]);
                 }
