@@ -56,8 +56,9 @@ return [
 
             'brevo' => [
             'transport' => 'brevo',
+            // Force update for Railway
         ],
-        
+
         ],
 
         'ses' => [
