@@ -47,7 +47,7 @@ return [
             'password' => env('MAIL_PASSWORD'),
 
             // 🔥 FIX: prevent 1-minute hangs
-            'timeout' => env('MAIL_TIMEOUT', 10),
+            'timeout' => env('MAIL_TIMEOUT', 120),
 
             'local_domain' => env(
                 'MAIL_EHLO_DOMAIN',
