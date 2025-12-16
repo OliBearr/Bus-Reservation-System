@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\URL;
 
-class VerifyEmail extends Notification
+class VerifyEmail extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -25,14 +25,13 @@ class VerifyEmail extends Notification
 
         return (new MailMessage)
             ->subject('Verify your BusPH Account')
-            ->greeting('Welcome to BusPH!') // Custom Greeting
+            ->greeting('Welcome to BusPH!')
             ->line('Please click the button below to verify your email address and start booking your trips.')
             ->action('Verify Email Address', $verificationUrl)
             ->line('If you did not create an account, no further action is required.')
-            ->salutation('Safe travels, The BusPH Team'); // Custom Sign-off
+            ->salutation('Safe travels, The BusPH Team');
     }
 
-    // You must also include the verificationUrl method here (copied from parent)
     protected function verificationUrl($notifiable)
     {
         return URL::temporarySignedRoute(

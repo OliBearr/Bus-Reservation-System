@@ -8,6 +8,8 @@ use Illuminate\Support\ServiceProvider;
 use App\Interfaces\RouteRepositoryInterface;
 use App\Repositories\RouteRepository;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Support\Facades\Notification;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Bootstrap any application services.
+ * Bootstrap any application services.
      */
     public function boot(): void
     {
