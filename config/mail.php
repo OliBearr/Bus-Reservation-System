@@ -53,10 +53,11 @@ return [
                 'MAIL_EHLO_DOMAIN',
                 parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)
             ),
+
+            'brevo' => [
+            'transport' => 'brevo',
         ],
         
-        'brevo' => [
-            'transport' => 'brevo',
         ],
 
         'ses' => [
