@@ -68,8 +68,15 @@
                                         <div class="text-right">
                                             {{-- Status Badges --}}
                                             <div class="flex justify-end gap-2 mb-2">
-                                                @if($booking->trip_type === 'round_trip')
-                                                    <span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded border border-blue-100 uppercase tracking-wide">Round Trip</span>
+                                                {{-- Trip Leg Badge --}}
+                                                @if($booking->trip_type === 'outbound' || $booking->trip_type === 'return')
+                                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">
+                                                        Round Trip: {{ ucfirst($booking->trip_type) }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-50 text-gray-500 border border-gray-100 uppercase">
+                                                        One-Way
+                                                    </span>
                                                 @endif
                                                 
                                                 @if($booking->status === 'pending')
