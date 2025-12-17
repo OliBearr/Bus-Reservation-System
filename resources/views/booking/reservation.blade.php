@@ -45,8 +45,11 @@
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Mobile Number*</label>
                                     <input type="text" id="mobile_number" name="contact_phone" 
-                                           placeholder="+63 9XX XXX XXXX or 09XX XXX XXXX" required 
-                                           class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
+                                        {{-- Regex: Matches '09' followed by 9 digits OR '+63' followed by 10 digits --}}
+                                        pattern="^(09\d{9}|\+63\d{10})$"
+                                        title="Please enter a valid PH mobile number (e.g., 09171234567 or +639171234567)"
+                                        placeholder="+63 9XX XXX XXXX or 09XX XXX XXXX" required 
+                                        class="w-full rounded-lg border-gray-300 focus:ring-[#001233] focus:border-[#001233]">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Email Address*</label>
@@ -221,55 +224,87 @@
 
     {{-- SCRIPTS: VALIDATION --}}
     <script>
-        // 1. Mobile Number Validation
-        document.getElementById('mobile_number').addEventListener('input', function (e) {
-            let value = e.target.value;
+    document.addEventListener('DOMContentLoaded', function () {
+        const mobileInput = document.getElementById('mobile_number');
 
-            // Allow only digits and +
-            value = value.replace(/[^0-9+]/g, '');
+        if (mobileInput) {
+            mobileInput.addEventListener('input', function (e) {
+                let value = e.target.value;
 
-            // + only allowed at the start
-            if (value.includes('+') && !value.startsWith('+')) {
-                value = value.replace(/\+/g, '');
-            }
+                // 1. Remove any character that is NOT a number or a plus sign
+                value = value.replace(/[^0-9+]/g, '');
 
-            // Enforce prefixes logic
-            // If user types '09', limit to 11 chars
-            if (value.startsWith('09')) {
-                if (value.length > 11) value = value.slice(0, 11);
-            } 
-            // If user types '+63', limit to 13 chars
-            else if (value.startsWith('+63')) {
-                if (value.length > 13) value = value.slice(0, 13);
-            }
-            // If user starts typing but it's not +63 or 09 yet, allow them to type (don't force delete immediately or they can't type +63)
-            // But if they type something invalid like '1', '2', remove it
-            else if (value.length > 0 && !value.startsWith('+') && !value.startsWith('0')) {
-                 value = ''; // Invalid start char
-            }
-
-            e.target.value = value;
-        });
-
-        // 2. Name Validation (Letters & Spaces only, Uppercase)
-        function validateName(input) {
-                    input.value = input.value
-                        .toUpperCase()
-                        .replace(/[^A-Z\s]/g, ''); // Remove anything that is NOT A-Z or space
+                // 2. LOGIC: Enforce the starting characters
+                
+                // Case A: User deletes everything
+                if (value.length === 0) {
+                    e.target.value = '';
+                    return;
                 }
-                function formatDiscountId(input) {
-            // Remove everything except numbers
-            let value = input.value.replace(/\D/g, '');
 
-            // Limit to 8 digits
-            value = value.slice(0, 8);
+                // Case B: First character must be '0' or '+'
+                const firstChar = value.charAt(0);
+                if (firstChar !== '0' && firstChar !== '+') {
+                    // If they type '9' (expecting 09...), change it to '09' automatically? 
+                    // Or just block it. Let's strictly block invalid starts.
+                    value = ''; 
+                }
 
-            // Insert dash after 4 digits
-            if (value.length > 4) {
-                value = value.slice(0, 4) + '-' + value.slice(4);
-            }
+                // Case C: Handling "0..." format (Target: 09XXXXXXXXX)
+                if (firstChar === '0') {
+                    // If they type a 2nd char, it MUST be '9'
+                    if (value.length > 1 && value.charAt(1) !== '9') {
+                        value = '0'; // Revert to just '0' if they typed '01', '02', etc.
+                    }
+                    // Limit length to 11 characters
+                    if (value.length > 11) {
+                        value = value.slice(0, 11);
+                    }
+                }
 
-            input.value = value;
+                // Case D: Handling "+..." format (Target: +63XXXXXXXXXX)
+                if (firstChar === '+') {
+                    // 2nd char must be '6'
+                    if (value.length > 1 && value.charAt(1) !== '6') {
+                        value = '+';
+                    }
+                    // 3rd char must be '3'
+                    if (value.length > 2 && value.charAt(2) !== '3') {
+                        value = '+6';
+                    }
+                    // Limit length to 13 characters (+63 + 10 digits)
+                    if (value.length > 13) {
+                        value = value.slice(0, 13);
+                    }
+                }
+
+                e.target.value = value;
+            });
         }
-    </script>
+    });
+
+    // 2. Name Validation (These functions are global, so they don't need DOMContentLoaded)
+    // Make sure your input has oninput="validateName(this)"
+    function validateName(input) {
+        input.value = input.value
+            .toUpperCase()
+            .replace(/[^A-Z\s]/g, ''); // Remove anything that is NOT A-Z or space
+    }
+
+    // Make sure your input has oninput="formatDiscountId(this)"
+    function formatDiscountId(input) {
+        // Remove everything except numbers
+        let value = input.value.replace(/\D/g, '');
+
+        // Limit to 8 digits
+        value = value.slice(0, 8);
+
+        // Insert dash after 4 digits
+        if (value.length > 4) {
+            value = value.slice(0, 4) + '-' + value.slice(4);
+        }
+
+        input.value = value;
+    }
+</script>
 </x-app-layout>
