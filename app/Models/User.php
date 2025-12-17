@@ -7,9 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Carbon;
-use App\Services\BrevoMailService;
+use App\Notifications\VerifyEmail; // 👈 1. Import your custom notification
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -33,23 +31,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
     ];
 
+    // ✅ REPLACED: Use the standard Notification system
     public function sendEmailVerificationNotification()
     {
-        $url = URL::temporarySignedRoute(
-            'verification.verify',
-            Carbon::now()->addMinutes(60),
-            [
-                'id' => $this->getKey(),
-                'hash' => sha1($this->getEmailForVerification()),
-            ]
-        );
-
-        BrevoMailService::send(
-            $this->email,
-            'Verify your email – BusPH',
-            "<p>Click the link below to verify your email:</p>
-             <a href='{$url}'>Verify Email</a>"
-        );
+        // This tells Laravel to use the 'brevo' mailer settings you configured
+        $this->notify(new VerifyEmail);
     }
 
     public function sendPasswordResetNotification($token)
